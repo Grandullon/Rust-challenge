@@ -1,0 +1,10 @@
+fn main() {
+    let luz_verde = true;
+    let luz_roja = false;
+
+    if luz_verde && luz_roja {
+        println!("Avanza con precaución.");
+    } else {
+        println!("Detente o avanza dependiendo del semáforo.");
+    }
+}
