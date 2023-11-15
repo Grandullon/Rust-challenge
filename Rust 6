@@ -1,0 +1,13 @@
+fn main() {
+    let mut tazas_de_cafe = 0;
+    loop {
+        println!("Preparando otra taza de café... ☕");
+        tazas_de_cafe += 1;
+
+        if tazas_de_cafe >= 10 {
+            println!("¡Danger! La cafetera está desbordando café...");
+            break;
+        }
+    }
+    println!("Programador: Creo que debería revisar mi bucle `loop`.");
+}
