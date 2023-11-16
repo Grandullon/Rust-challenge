@@ -1,0 +1,9 @@
+fn main() {
+    let posicion_heroe = (3, 7);
+
+    reportar_posicion(posicion_heroe);
+}
+
+fn reportar_posicion(pos: (i32, i32)) {
+    println!("Reportando posición: ({}, {})", pos.0, pos.1);
+}
