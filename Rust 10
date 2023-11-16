@@ -1,0 +1,7 @@
+fn main() {
+    let frodo = 5;
+    let gandalf = "10";
+    let gandalf_num = gandalf.parse::<i32>().unwrap();
+    let anillo = frodo + gandalf_num;
+    println!("Anillos para gobernarlos a todos: {}", anillo);
+}
