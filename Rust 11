@@ -1,0 +1,11 @@
+enum CriptoMoneda {
+    Bitcoin,
+    Polkadot,
+    Ethereum,
+    CacaCoin, // Llorando de pena
+}
+
+fn main() {
+    let mi_inversion = CriptoMoneda::CacaCoin;
+    println!("He invertido en: {:?}", mi_inversion);
+}
