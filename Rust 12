@@ -1,0 +1,10 @@
+fn main() {
+    let mut codigo_secreto = [3, 1, 4, 1, 5, 9];
+    codigo_secreto[2] = 2;
+
+    if codigo_secreto == [3, 1, 2, 1, 5, 9] {
+        println!("¡Nivel secreto desbloqueado!");
+    } else {
+        println!("Código incorrecto. Inténtalo de nuevo.");
+    }
+}
