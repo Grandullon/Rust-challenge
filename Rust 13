@@ -1,0 +1,8 @@
+fn main() {
+    let str1 = String::from("Sheldon dice: 'No soy loco,");
+    let str2 = " mi madre me hizo una prueba.'";
+
+    let resultado = format!("{}{}", str1, str2);
+
+    println!("Resultado: {}", resultado);
+}
