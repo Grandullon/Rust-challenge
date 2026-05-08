@@ -1,0 +1,84 @@
+{
+  "_documentacion": {
+    "descripcion": "Configuración del dashboard. Edita este archivo para añadir/quitar tareas y bases de carpetas.",
+    "modelo_bases": "Cada 'base' representa una carpeta UNC raíz que el usuario seleccionará una sola vez en el navegador. Las bases se eligen suficientemente profundas como para no incluir archivos del sistema (NO usar \\\\Alhambra\\grupo$ directamente — Windows lo bloquea). Los handles seleccionados se persisten en IndexedDB.",
+    "campos_base": {
+      "id": "Identificador único interno",
+      "nombre": "Nombre visible al pedir selección",
+      "rutaUNC": "Ruta UNC esperada para mostrarla como referencia al usuario"
+    },
+    "campos_tarea": {
+      "id": "Identificador único interno",
+      "nombre": "Nombre visible en el dashboard",
+      "area": "Agrupación para filtrar (Dirección, departamento...)",
+      "baseId": "ID de la base donde está esta tarea",
+      "rutaRelativa": "Ruta desde la base hasta la carpeta donde están los archivos. Soporta tokens {YYYY}, {MM}, {MES_TEXTO}.",
+      "rutaConSubcarpetaMes": "Si true, dentro de la rutaRelativa hay una subcarpeta por mes (Enero, Febrero, MARZO...). El detector busca insensible a mayúsculas.",
+      "periodicidad": "diaria | semanal | mensual | anual",
+      "patronArchivo": "Patrón regex para detectar el archivo. Tokens: {YYYY}, {YYYYISO}, {MM}, {DD}, {WW}, {MES_TEXTO}. Insensible a mayúsculas.",
+      "extension": "Extensión esperada (xlsx, xls, docx, pdf...)",
+      "diasLaborables": "Solo para diarias: si true, fines de semana se ignoran"
+    }
+  },
+  "bases": [
+    {
+      "id": "personal_activo_root",
+      "nombre": "Personal Activo y derivados",
+      "rutaUNC": "\\\\Alhambra\\grupo$\\HUVN-PERSONAL-ACTIVO"
+    },
+    {
+      "id": "seguimiento_jc_ca",
+      "nombre": "Seguimiento JC / CA 2026",
+      "rutaUNC": "\\\\Alhambra\\grupo$\\GrupodeApoyoGestion\\H. VIRGEN NIEVES 2026\\SEGUIMIENTO JC_CA"
+    }
+  ],
+  "tareas": [
+    {
+      "id": "continuidad_asistencial",
+      "nombre": "Continuidad Asistencial",
+      "area": "Dirección Médica",
+      "baseId": "seguimiento_jc_ca",
+      "rutaRelativa": "CONTINUIDAD ASISTENCIAL\\C.A. X MESES",
+      "rutaConSubcarpetaMes": false,
+      "periodicidad": "mensual",
+      "patronArchivo": "{MM}-{YYYY}-CA",
+      "extension": "xlsx"
+    },
+    {
+      "id": "personal_activo",
+      "nombre": "Personal Activo",
+      "area": "RRHH",
+      "baseId": "personal_activo_root",
+      "rutaRelativa": "Personal Activo\\{YYYY}",
+      "rutaConSubcarpetaMes": false,
+      "periodicidad": "diaria",
+      "patronArchivo": "PA-{YYYY}-{MM}-{DD}",
+      "extension": "xlsx",
+      "diasLaborables": true
+    },
+    {
+      "id": "it_diaria",
+      "nombre": "IT Diaria",
+      "area": "RRHH",
+      "baseId": "personal_activo_root",
+      "rutaRelativa": "IT DIARIA\\IT DIARIA\\{YYYY}",
+      "rutaConSubcarpetaMes": true,
+      "periodicidad": "diaria",
+      "patronArchivo": "IT-HVN-{YYYY}-{MM}-{DD}",
+      "extension": "xlsx",
+      "diasLaborables": true
+    },
+    {
+      "id": "altas_it",
+      "nombre": "Altas IT",
+      "area": "RRHH",
+      "baseId": "personal_activo_root",
+      "rutaRelativa": "IT DIARIA\\ALTAS IT\\{YYYY}",
+      "rutaConSubcarpetaMes": true,
+      "periodicidad": "diaria",
+      "patronArchivo": "ALTAS IT A {YYYY}-{MM}-{DD}",
+      "extension": "xlsx",
+      "diasLaborables": true
+    }
+  ]
+}

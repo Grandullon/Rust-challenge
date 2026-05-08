@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Tareas · HUVN · RRHH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --bg-card: #ffffff;
+    --bg-soft: #efece4;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-mute: #8a8a8a;
+    --line: #d8d3c5;
+    --line-soft: #e8e3d5;
+    --accent: #1d3557;
+    --accent-warm: #c9a961;
+
+    --green: #2d6a4f;
+    --green-bg: #d4e4dc;
+    --amber: #b8860b;
+    --amber-bg: #f4e4b8;
+    --red: #9b2226;
+    --red-bg: #f0d4d4;
+    --gray: #b0aca0;
+    --gray-bg: #ebe7dc;
+
+    --shadow-sm: 0 1px 2px rgba(26,26,26,0.04), 0 1px 1px rgba(26,26,26,0.03);
+    --shadow-md: 0 4px 12px rgba(26,26,26,0.06), 0 2px 4px rgba(26,26,26,0.04);
+    --radius: 4px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(26,26,26,0.025) 1px, transparent 0);
+    background-size: 24px 24px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 32px 40px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---------- HEADER ---------- */
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--line);
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .titulo-bloque {
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+  }
+
+  .logo-mark {
+    width: 56px;
+    height: 56px;
+    background: var(--ink);
+    color: var(--bg);
+    display: grid;
+    place-items: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: -0.04em;
+    border-radius: var(--radius);
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 36px;
+    letter-spacing: -0.025em;
+    line-height: 1;
+  }
+
+  .subtitulo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    margin-top: 6px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .btn {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.01em;
+  }
+  .btn:hover { background: var(--accent); border-color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: var(--ink); }
+  .btn-secondary:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+  .btn-mini {
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 3px;
+  }
+
+  .btn svg { width: 14px; height: 14px; }
+
+  /* ---------- BASES ---------- */
+  .bases-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 22px 4px;
+    margin-bottom: 24px;
+  }
+  .bases-panel.no-conectado { border-style: dashed; }
+  .bases-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .bases-header h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+  }
+  .bases-header h2 small {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+    font-weight: 400;
+    margin-left: 8px;
+  }
+
+  .base-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-soft);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .base-info { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+  .base-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--ink-mute);
+    flex-shrink: 0;
+  }
+  .base-dot.activo { background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+  .base-dot.error { background: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
+  .base-texto { min-width: 0; }
+  .base-texto strong { font-weight: 600; font-size: 13.5px; display: block; }
+  .base-texto code {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-mute);
+    margin-top: 2px;
+    word-break: break-all;
+  }
+  .base-acciones { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* ---------- METRICAS ---------- */
+  .metricas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .metrica {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metrica::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--ink);
+  }
+  .metrica.verde::before { background: var(--green); }
+  .metrica.amber::before { background: var(--amber); }
+  .metrica.rojo::before { background: var(--red); }
+
+  .metrica-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+  }
+  .metrica-valor {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 44px;
+    line-height: 1;
+    margin-top: 10px;
+    letter-spacing: -0.03em;
+  }
+  .metrica-detalle {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* ---------- FILTROS ---------- */
+  .filtros {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filtro-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    margin-right: 8px;
+  }
+  .filtro-chip {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 12px;
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    color: var(--ink-soft);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .filtro-chip:hover { border-color: var(--ink); }
+  .filtro-chip.activo {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  /* ---------- TABLA / MATRIZ ---------- */
+  .seccion-titulo {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    margin-bottom: 4px;
+  }
+  .seccion-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    margin-bottom: 16px;
+  }
+
+  .matriz-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: auto;
+    margin-bottom: 32px;
+  }
+  table.matriz {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.matriz th, table.matriz td {
+    padding: 12px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--line-soft);
+    border-right: 1px solid var(--line-soft);
+    vertical-align: middle;
+  }
+  table.matriz th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+    background: var(--bg-soft);
+    padding: 14px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  table.matriz tr:last-child td { border-bottom: none; }
+  table.matriz td:last-child, table.matriz th:last-child { border-right: none; }
+
+  .col-tarea {
+    text-align: left !important;
+    padding-left: 20px !important;
+    min-width: 240px;
+    max-width: 280px;
+  }
+  .col-tarea-th { text-align: left !important; padding-left: 20px !important; }
+
+  .tarea-nombre {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.15s ease;
+  }
+  .tarea-nombre:hover { color: var(--accent); }
+  .tarea-nombre svg { width: 12px; height: 12px; opacity: 0.5; }
+  .tarea-nombre:hover svg { opacity: 1; }
+  .tarea-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .tarea-error {
+    background: var(--red-bg);
+    color: var(--red);
+    padding: 10px 14px;
+    margin-top: 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .tarea-error code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+
+  /* ---------- CELDAS DE ESTADO ---------- */
+  .celda {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius);
+    margin: 0 auto;
+    display: grid;
+    place-items: center;
+    cursor: default;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    transition: transform 0.12s ease;
+    position: relative;
+  }
+  .celda.clicable { cursor: pointer; }
+  .celda.clicable:hover { transform: scale(1.08); }
+
+  .celda.verde { background: var(--green-bg); color: var(--green); }
+  .celda.amber { background: var(--amber-bg); color: #6a4a06; }
+  .celda.rojo { background: var(--red-bg); color: var(--red); }
+  .celda.gris { background: var(--gray-bg); color: var(--gray); }
+
+  .celda-semana { width: 30px; height: 30px; font-size: 10px; }
+
+  /* Tooltip */
+  .celda[data-tooltip]::after,
+  .cal-dia[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 10;
+  }
+  .celda[data-tooltip]:hover::after { opacity: 1; }
+  .cal-dia[data-tooltip]:hover::after { opacity: 1; }
+
+  /* ---------- VISTA DIARIA ---------- */
+  .diarias-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .diaria-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+  .diaria-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .diaria-titulo {
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .diaria-titulo:hover { color: var(--accent); }
+  .diaria-titulo svg { width: 12px; height: 12px; opacity: 0.5; }
+  .diaria-resumen {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .diaria-resumen small {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-weight: 400;
+    margin-left: 4px;
+  }
+  .calendario-mes {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .cal-dia-cab {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-align: center;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    padding-bottom: 4px;
+  }
+  .cal-dia {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-soft);
+    color: var(--ink-mute);
+    cursor: default;
+    position: relative;
+  }
+  .cal-dia.verde { background: var(--green-bg); color: var(--green); cursor: pointer; }
+  .cal-dia.amber { background: var(--amber-bg); color: #6a4a06; }
+  .cal-dia.rojo { background: var(--red-bg); color: var(--red); }
+  .cal-dia.fin-semana { opacity: 0.4; }
+  .cal-dia.hoy { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .cal-dia.verde:hover { transform: scale(1.15); z-index: 2; }
+
+  /* ---------- LEYENDA ---------- */
+  .leyenda {
+    display: flex;
+    gap: 20px;
+    margin-top: 16px;
+    padding: 14px 20px;
+    background: var(--bg-soft);
+    border-radius: var(--radius);
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+  .leyenda-item { display: flex; align-items: center; gap: 8px; }
+  .leyenda-cuadro {
+    width: 14px; height: 14px; border-radius: 3px;
+  }
+  .leyenda-item.verde .leyenda-cuadro { background: var(--green-bg); border: 1px solid var(--green); }
+  .leyenda-item.amber .leyenda-cuadro { background: var(--amber-bg); border: 1px solid var(--amber); }
+  .leyenda-item.rojo .leyenda-cuadro { background: var(--red-bg); border: 1px solid var(--red); }
+  .leyenda-item.gris .leyenda-cuadro { background: var(--gray-bg); border: 1px solid var(--gray); }
+
+  /* ---------- AVISOS ---------- */
+  .aviso {
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    font-size: 13px;
+    border-left: 3px solid;
+  }
+  .aviso.info { background: #e8eef5; border-color: var(--accent); color: #0d2138; }
+  .aviso.warn { background: var(--amber-bg); border-color: var(--amber); color: #6a4a06; }
+  .aviso h4 { font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+  .aviso code {
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 11.5px;
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ---------- LOADER ---------- */
+  .loader-wrap {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+  .loader-wrap.activo { display: inline-flex; }
+  .loader {
+    width: 16px; height: 16px;
+    border: 2px solid var(--line);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- VACIO ---------- */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-mute);
+  }
+  .empty-state h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .empty-state p { max-width: 520px; margin: 0 auto 12px; }
+
+  @media (max-width: 768px) {
+    .metricas { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 28px; }
+    .container { padding: 20px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="titulo-bloque">
+      <div class="logo-mark">N</div>
+      <div>
+        <h1>Panel de Tareas Periódicas</h1>
+        <div class="subtitulo">HUVN · Recursos Humanos · <span id="anio-actual"></span></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="loader-wrap" id="loader">
+        <div class="loader"></div>
+        <span>Comprobando archivos...</span>
+      </div>
+      <button class="btn btn-secondary" id="btn-recargar-config">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Cargar config
+      </button>
+      <button class="btn" id="btn-comprobar" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Comprobar ahora
+      </button>
+    </div>
+  </header>
+
+  <div class="aviso info" id="aviso-bienvenida">
+    <h4>Cómo funciona</h4>
+    Para cada <strong>base</strong> de carpetas (panel inferior) pulsa "Seleccionar" y elige la carpeta UNC indicada. <strong>No selecciones la raíz <code>\\Alhambra\grupo$</code> directamente</strong> — Windows la bloquea por contener archivos de sistema. El navegador recordará tus elecciones para próximas sesiones. Después pulsa <strong>Comprobar ahora</strong>.
+  </div>
+
+  <div class="bases-panel no-conectado" id="bases-panel">
+    <div class="bases-header">
+      <h2>Carpetas conectadas <small id="bases-resumen">— de —</small></h2>
+    </div>
+    <div id="bases-lista">
+      <div class="empty-state" style="padding:24px 20px;">
+        <p>Esperando configuración…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MÉTRICAS RESUMEN ===== -->
+  <div class="metricas" id="metricas">
+    <div class="metrica">
+      <div class="metrica-label">Tareas configuradas</div>
+      <div class="metrica-valor" id="m-total">—</div>
+      <div class="metrica-detalle" id="m-total-detalle">Esperando comprobación</div>
+    </div>
+    <div class="metrica verde">
+      <div class="metrica-label">Al día</div>
+      <div class="metrica-valor" id="m-verde">—</div>
+      <div class="metrica-detalle" id="m-verde-detalle">Periodos completados</div>
+    </div>
+    <div class="metrica amber">
+      <div class="metrica-label">En curso</div>
+      <div class="metrica-valor" id="m-amber">—</div>
+      <div class="metrica-detalle" id="m-amber-detalle">Periodos abiertos</div>
+    </div>
+    <div class="metrica rojo">
+      <div class="metrica-label">Atrasadas</div>
+      <div class="metrica-valor" id="m-rojo">—</div>
+      <div class="metrica-detalle" id="m-rojo-detalle">Periodos cerrados sin archivo</div>
+    </div>
+  </div>
+
+  <!-- ===== FILTROS ===== -->
+  <div class="filtros" id="filtros">
+    <span class="filtro-label">Filtrar por área</span>
+    <button class="filtro-chip activo" data-filtro="__todas">Todas</button>
+  </div>
+
+  <!-- ===== MATRIZ MENSUAL ===== -->
+  <div id="bloque-mensuales" style="display:none">
+    <div class="seccion-titulo">Tareas mensuales y anuales</div>
+    <div class="seccion-sub">Vista anual ─ <span id="anio-matriz"></span></div>
+    <div class="matriz-wrap">
+      <table class="matriz" id="tabla-matriz">
+        <thead>
+          <tr>
+            <th class="col-tarea-th">Tarea</th>
+            <th>Ene</th><th>Feb</th><th>Mar</th><th>Abr</th>
+            <th>May</th><th>Jun</th><th>Jul</th><th>Ago</th>
+            <th>Sep</th><th>Oct</th><th>Nov</th><th>Dic</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== MATRIZ SEMANAL ===== -->
+  <div id="bloque-semanales" style="display:none">
+    <div class="seccion-titulo">Tareas semanales</div>
+    <div class="seccion-sub">Año ISO ─ <span id="anio-semanas"></span></div>
+    <div class="matriz-wrap">
+      <table class="matriz" id="tabla-semanas">
+        <thead><tr id="th-semanas"></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== DIARIAS ===== -->
+  <div id="bloque-diarias" style="display:none">
+    <div class="seccion-titulo">Tareas diarias</div>
+    <div class="seccion-sub">Mes en curso · <span id="mes-curso"></span></div>
+    <div class="diarias-grid" id="diarias-grid"></div>
+  </div>
+
+  <!-- ===== LEYENDA ===== -->
+  <div class="leyenda">
+    <div class="leyenda-item verde"><div class="leyenda-cuadro"></div>Archivo detectado</div>
+    <div class="leyenda-item amber"><div class="leyenda-cuadro"></div>Periodo en curso</div>
+    <div class="leyenda-item rojo"><div class="leyenda-cuadro"></div>Pendiente / atrasado</div>
+    <div class="leyenda-item gris"><div class="leyenda-cuadro"></div>Periodo futuro o no aplica</div>
+  </div>
+
+  <footer>
+    <span>HUVN · Servicio Andaluz de Salud · Granada</span>
+    <span id="ultima-comprobacion">Última comprobación: —</span>
+  </footer>
+
+</div>
+
+<script>
+/* =====================================================
+   DASHBOARD DE TAREAS PERIÓDICAS · HUVN · RRHH
+   ===================================================== */
+
+const MESES = ['enero','febrero','marzo','abril','mayo','junio',
+               'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+let CONFIG = null;
+let HANDLES_BASES = {};      // { baseId: FileSystemDirectoryHandle }
+let RESULTADOS = {};         // { tareaId: {...} }
+let FILTRO_AREA = '__todas';
+
+const HOY = new Date();
+const ANIO_ACTUAL = HOY.getFullYear();
+const MES_ACTUAL = HOY.getMonth() + 1;
+const DIA_ACTUAL = HOY.getDate();
+
+document.getElementById('anio-actual').textContent = ANIO_ACTUAL;
+document.getElementById('anio-matriz').textContent = ANIO_ACTUAL;
+document.getElementById('anio-semanas').textContent = ANIO_ACTUAL;
+document.getElementById('mes-curso').textContent = MESES[MES_ACTUAL-1].toUpperCase() + ' ' + ANIO_ACTUAL;
+
+/* =====================================================
+   PERSISTENCIA EN INDEXEDDB
+   ===================================================== */
+const DB_NAME = 'huvn-dashboard';
+const DB_STORE = 'bases';
+
+function abrirDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function guardarHandleBase(baseId, handle) {
+  try {
+    const db = await abrirDB();
+    await new Promise((res, rej) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(handle, baseId);
+      tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+    });
+  } catch (e) { console.warn('No se pudo persistir handle:', e); }
+}
+
+async function cargarHandleBase(baseId) {
+  try {
+    const db = await abrirDB();
+    return await new Promise((res, rej) => {
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const r = tx.objectStore(DB_STORE).get(baseId);
+      r.onsuccess = () => res(r.result || null);
+      r.onerror = () => rej(r.error);
+    });
+  } catch { return null; }
+}
+
+async function borrarHandleBase(baseId) {
+  try {
+    const db = await abrirDB();
+    await new Promise((res) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete(baseId);
+      tx.oncomplete = res;
+    });
+  } catch {}
+}
+
+/* =====================================================
+   CARGA DE CONFIGURACIÓN
+   ===================================================== */
+async function cargarConfigPorDefecto() {
+  try {
+    const res = await fetch('config.json');
+    if (!res.ok) throw new Error('No se encontró config.json');
+    CONFIG = await res.json();
+    return true;
+  } catch (e) {
+    console.warn('config.json no disponible:', e.message);
+    return false;
+  }
+}
+
+function cargarConfigManual() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      CONFIG = JSON.parse(await file.text());
+      HANDLES_BASES = {};
+      await iniciarBases();
+      renderFiltros();
+      renderBases();
+    } catch (e) {
+      alert('Error al cargar config.json: ' + e.message);
+    }
+  };
+  input.click();
+}
+
+function renderFiltros() {
+  if (!CONFIG?.tareas) return;
+  const areas = [...new Set(CONFIG.tareas.map(t => t.area))];
+  const cont = document.getElementById('filtros');
+  cont.querySelectorAll('.filtro-chip:not([data-filtro="__todas"])').forEach(b => b.remove());
+  areas.forEach(area => {
+    const btn = document.createElement('button');
+    btn.className = 'filtro-chip';
+    btn.dataset.filtro = area;
+    btn.textContent = area;
+    btn.onclick = () => activarFiltro(area);
+    cont.appendChild(btn);
+  });
+  document.querySelector('.filtro-chip[data-filtro="__todas"]').onclick = () => activarFiltro('__todas');
+}
+
+function activarFiltro(valor) {
+  FILTRO_AREA = valor;
+  document.querySelectorAll('.filtro-chip').forEach(b => b.classList.toggle('activo', b.dataset.filtro === valor));
+  renderResultados();
+}
+
+/* =====================================================
+   GESTIÓN DE BASES
+   ===================================================== */
+async function iniciarBases() {
+  if (!CONFIG?.bases) return;
+  for (const base of CONFIG.bases) {
+    const handle = await cargarHandleBase(base.id);
+    if (handle) {
+      try {
+        const perm = await handle.queryPermission({ mode: 'read' });
+        if (perm === 'granted') {
+          HANDLES_BASES[base.id] = handle;
+        } else {
+          HANDLES_BASES[base.id] = { handle, necesitaReautorizar: true };
+        }
+      } catch {
+        HANDLES_BASES[base.id] = { handle, necesitaReautorizar: true };
+      }
+    }
+  }
+  actualizarBotonComprobar();
+}
+
+async function seleccionarBase(baseId) {
+  const base = CONFIG.bases.find(b => b.id === baseId);
+  if (!base) return;
+  if (!('showDirectoryPicker' in window)) {
+    alert('Tu navegador no soporta el acceso a carpetas. Usa Edge o Chrome actualizado.');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({
+      mode: 'read',
+      id: 'huvn-' + baseId
+    });
+    HANDLES_BASES[baseId] = handle;
+    await guardarHandleBase(baseId, handle);
+    renderBases();
+    actualizarBotonComprobar();
+  } catch (e) {
+    if (e.name !== 'AbortError') alert('No se pudo acceder a la carpeta: ' + e.message);
+  }
+}
+
+async function reautorizarBase(baseId) {
+  const wrap = HANDLES_BASES[baseId];
+  if (!wrap?.handle) return;
+  try {
+    const perm = await wrap.handle.requestPermission({ mode: 'read' });
+    if (perm === 'granted') {
+      HANDLES_BASES[baseId] = wrap.handle;
+      renderBases();
+      actualizarBotonComprobar();
+    }
+  } catch (e) { console.warn(e); }
+}
+
+async function olvidarBase(baseId) {
+  delete HANDLES_BASES[baseId];
+  await borrarHandleBase(baseId);
+  renderBases();
+  actualizarBotonComprobar();
+}
+
+function obtenerHandleBase(baseId) {
+  const v = HANDLES_BASES[baseId];
+  if (!v) return null;
+  if (v.necesitaReautorizar) return null;
+  return v;
+}
+
+function basesPendientes() {
+  if (!CONFIG?.bases) return [];
+  return CONFIG.bases.filter(b => !obtenerHandleBase(b.id));
+}
+
+function actualizarBotonComprobar() {
+  const btn = document.getElementById('btn-comprobar');
+  btn.disabled = !CONFIG?.tareas || basesPendientes().length > 0;
+}
+
+function renderBases() {
+  const lista = document.getElementById('bases-lista');
+  const panel = document.getElementById('bases-panel');
+  const resumen = document.getElementById('bases-resumen');
+  if (!CONFIG?.bases?.length) {
+    lista.innerHTML = '<div class="base-row"><div class="base-info"><span>No hay bases configuradas. Edita <code>config.json</code>.</span></div></div>';
+    panel.classList.add('no-conectado');
+    resumen.textContent = '0 de 0';
+    return;
+  }
+  lista.innerHTML = '';
+  let conectadas = 0;
+  CONFIG.bases.forEach(base => {
+    const wrap = HANDLES_BASES[base.id];
+    const conectada = wrap && !wrap.necesitaReautorizar;
+    const reautorizar = wrap?.necesitaReautorizar;
+    if (conectada) conectadas++;
+
+    const row = document.createElement('div');
+    row.className = 'base-row';
+    row.innerHTML = `
+      <div class="base-info">
+        <div class="base-dot ${conectada ? 'activo' : (reautorizar ? 'error' : '')}"></div>
+        <div class="base-texto">
+          <strong>${escapar(base.nombre)}</strong>
+          <code>${escapar(base.rutaUNC)}</code>
+        </div>
+      </div>
+      <div class="base-acciones"></div>
+    `;
+    const acc = row.querySelector('.base-acciones');
+    if (conectada) {
+      const btnOk = document.createElement('span');
+      btnOk.className = 'tarea-meta';
+      btnOk.style.cssText = 'color:var(--green);margin-right:8px;';
+      btnOk.textContent = '✓ CONECTADA';
+      acc.appendChild(btnOk);
+      const btnX = document.createElement('button');
+      btnX.className = 'btn btn-secondary btn-mini';
+      btnX.textContent = 'Olvidar';
+      btnX.onclick = () => olvidarBase(base.id);
+      acc.appendChild(btnX);
+    } else if (reautorizar) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-mini';
+      btn.textContent = 'Reautorizar';
+      btn.onclick = () => reautorizarBase(base.id);
+      acc.appendChild(btn);
+    } else {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-mini';
+      btn.textContent = 'Seleccionar';
+      btn.onclick = () => seleccionarBase(base.id);
+      acc.appendChild(btn);
+    }
+    lista.appendChild(row);
+  });
+  panel.classList.toggle('no-conectado', conectadas < CONFIG.bases.length);
+  resumen.textContent = `${conectadas} de ${CONFIG.bases.length}`;
+}
+
+function escapar(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* =====================================================
+   NAVEGACIÓN POR LA RUTA
+   ===================================================== */
+function rutaRelativaASegmentos(rutaRelativa, anio, mes) {
+  let r = String(rutaRelativa || '');
+  r = r.replace(/\{YYYY\}/g, anio)
+       .replace(/\{MM\}/g, String(mes).padStart(2,'0'))
+       .replace(/\{MES_TEXTO\}/g, MESES[mes-1]);
+  r = r.replace(/^[\\\/]+/, '');
+  return r.split(/[\\\/]+/).filter(s => s.length > 0);
+}
+
+async function navegarHastaCarpeta(handleBase, segmentos) {
+  // Devuelve { handle, fallaEn, disponibles, segmentosOk }
+  let actual = handleBase;
+  const segmentosOk = [];
+  for (const seg of segmentos) {
+    let encontrado = null;
+    const dispo = [];
+    try {
+      for await (const [nombre, h] of actual.entries()) {
+        if (h.kind !== 'directory') continue;
+        dispo.push(nombre);
+        if (nombre.toLowerCase() === seg.toLowerCase()) encontrado = h;
+      }
+    } catch (e) {
+      return { handle: null, fallaEn: seg, disponibles: [], segmentosOk, error: e.message };
+    }
+    if (!encontrado) {
+      return { handle: null, fallaEn: seg, disponibles: dispo.slice(0, 12), segmentosOk };
+    }
+    actual = encontrado;
+    segmentosOk.push(seg);
+  }
+  return { handle: actual, segmentosOk };
+}
+
+async function buscarSubcarpetaMes(handle, mes) {
+  const nombreMes = MESES[mes-1];
+  const mmStr = String(mes).padStart(2,'0');
+  for await (const [nombre, h] of handle.entries()) {
+    if (h.kind !== 'directory') continue;
+    const lower = nombre.toLowerCase();
+    if (lower === nombreMes || lower.includes(nombreMes) ||
+        lower === mmStr || lower.startsWith(mmStr+'-') || lower.startsWith(mmStr+' ')) {
+      return h;
+    }
+  }
+  return null;
+}
+
+/* =====================================================
+   DETECCIÓN DE ARCHIVOS
+   ===================================================== */
+function patronARegex(patron, anio, mes, dia, semana, anioISO) {
+  let p = String(patron || '');
+  p = p.replace(/\{YYYY\}/g, anio);
+  p = p.replace(/\{YYYYISO\}/g, anioISO !== undefined ? anioISO : anio);
+  p = p.replace(/\{MM\}/g, String(mes).padStart(2,'0'));
+  p = p.replace(/\{MES_TEXTO\}/g, MESES[mes-1]);
+  if (dia !== undefined) p = p.replace(/\{DD\}/g, String(dia).padStart(2,'0'));
+  if (semana !== undefined) p = p.replace(/\{WW\}/g, String(semana).padStart(2,'0'));
+  p = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(p, 'i');
+}
+
+async function listarArchivos(handle, extension) {
+  const archivos = [];
+  for await (const [nombre, h] of handle.entries()) {
+    if (h.kind !== 'file') continue;
+    if (extension && !nombre.toLowerCase().endsWith('.' + extension.toLowerCase())) continue;
+    archivos.push({ nombre, handle: h });
+  }
+  return archivos;
+}
+
+/* ----- Semana ISO ----- */
+function semanaISO(fecha) {
+  const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const semana = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { semana, anioISO: d.getUTCFullYear() };
+}
+
+function semanasEnAnioISO(anio) {
+  const dic28 = new Date(anio, 11, 28);
+  return semanaISO(dic28).semana;
+}
+
+function fechasDeSemanaISO(anioISO, semana) {
+  const ene4 = new Date(anioISO, 0, 4);
+  const dow = ene4.getDay() || 7;
+  const lunesS1 = new Date(ene4);
+  lunesS1.setDate(ene4.getDate() - dow + 1);
+  const lunes = new Date(lunesS1);
+  lunes.setDate(lunesS1.getDate() + (semana - 1) * 7);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
+  return { lunes, domingo };
+}
+
+/* =====================================================
+   COMPROBACIÓN POR TIPO
+   ===================================================== */
+async function comprobarTareaMensual(tarea) {
+  const baseHandle = obtenerHandleBase(tarea.baseId);
+  if (!baseHandle) return { error: 'Base no conectada: ' + tarea.baseId };
+
+  const segmentos = rutaRelativaASegmentos(tarea.rutaRelativa, ANIO_ACTUAL, 1);
+  const nav = await navegarHastaCarpeta(baseHandle, segmentos);
+
+  const resultado = { meses: {}, carpetaHandle: nav.handle, diagnostico: nav };
+
+  if (!nav.handle) {
+    for (let m = 1; m <= 12; m++) resultado.meses[m] = { estado: 'sin-carpeta' };
+    return resultado;
+  }
+
+  const archivos = await listarArchivos(nav.handle, tarea.extension);
+
+  for (let m = 1; m <= 12; m++) {
+    const regex = patronARegex(tarea.patronArchivo, ANIO_ACTUAL, m);
+    const match = archivos.find(a => regex.test(a.nombre));
+    if (match) {
+      resultado.meses[m] = { estado: 'verde', archivo: match.nombre, handle: match.handle };
+    } else if (m > MES_ACTUAL) {
+      resultado.meses[m] = { estado: 'gris' };
+    } else if (m === MES_ACTUAL) {
+      resultado.meses[m] = { estado: 'amber' };
+    } else {
+      resultado.meses[m] = { estado: 'rojo' };
+    }
+  }
+  return resultado;
+}
+
+async function comprobarTareaDiaria(tarea) {
+  const baseHandle = obtenerHandleBase(tarea.baseId);
+  if (!baseHandle) return { error: 'Base no conectada: ' + tarea.baseId };
+
+  const resultado = { dias: {}, diagnostico: null };
+  const mesesAExplorar = [MES_ACTUAL];
+  if (MES_ACTUAL > 1) mesesAExplorar.unshift(MES_ACTUAL - 1);
+
+  const segmentosBase = rutaRelativaASegmentos(tarea.rutaRelativa, ANIO_ACTUAL, MES_ACTUAL);
+  const nav = await navegarHastaCarpeta(baseHandle, segmentosBase);
+  resultado.carpetaHandle = nav.handle;
+  resultado.diagnostico = nav;
+
+  if (!nav.handle) return resultado;
+
+  for (const mes of mesesAExplorar) {
+    let carpetaMes = nav.handle;
+    if (tarea.rutaConSubcarpetaMes) {
+      const c = await buscarSubcarpetaMes(nav.handle, mes);
+      if (!c) continue;
+      carpetaMes = c;
+    }
+    const archivos = await listarArchivos(carpetaMes, tarea.extension);
+    const diasEnMes = new Date(ANIO_ACTUAL, mes, 0).getDate();
+    for (let d = 1; d <= diasEnMes; d++) {
+      const regex = patronARegex(tarea.patronArchivo, ANIO_ACTUAL, mes, d);
+      const match = archivos.find(a => regex.test(a.nombre));
+      const clave = mes + '-' + d;
+      const fecha = new Date(ANIO_ACTUAL, mes-1, d);
+      const dow = fecha.getDay();
+      const finSemana = (dow === 0 || dow === 6);
+      const futuro = (mes > MES_ACTUAL) || (mes === MES_ACTUAL && d > DIA_ACTUAL);
+
+      if (match) {
+        resultado.dias[clave] = { estado: 'verde', archivo: match.nombre, handle: match.handle, finSemana, mes, dia: d };
+      } else if (futuro) {
+        resultado.dias[clave] = { estado: 'gris', finSemana };
+      } else if (tarea.diasLaborables && finSemana) {
+        resultado.dias[clave] = { estado: 'gris', finSemana };
+      } else if (mes === MES_ACTUAL && d === DIA_ACTUAL) {
+        resultado.dias[clave] = { estado: 'amber', finSemana };
+      } else {
+        resultado.dias[clave] = { estado: 'rojo', finSemana };
+      }
+    }
+  }
+  return resultado;
+}
+
+async function comprobarTareaSemanal(tarea) {
+  const baseHandle = obtenerHandleBase(tarea.baseId);
+  if (!baseHandle) return { error: 'Base no conectada: ' + tarea.baseId };
+
+  const segmentos = rutaRelativaASegmentos(tarea.rutaRelativa, ANIO_ACTUAL, 1);
+  const nav = await navegarHastaCarpeta(baseHandle, segmentos);
+  const resultado = { semanas: {}, carpetaHandle: nav.handle, diagnostico: nav };
+
+  if (!nav.handle) return resultado;
+
+  const archivos = await listarArchivos(nav.handle, tarea.extension);
+  const ahoraISO = semanaISO(HOY);
+  const totalSem = semanasEnAnioISO(ANIO_ACTUAL);
+
+  for (let w = 1; w <= totalSem; w++) {
+    const regex = patronARegex(tarea.patronArchivo, ANIO_ACTUAL, 1, undefined, w, ANIO_ACTUAL);
+    const match = archivos.find(a => regex.test(a.nombre));
+    if (match) {
+      resultado.semanas[w] = { estado: 'verde', archivo: match.nombre, handle: match.handle };
+    } else if (w > ahoraISO.semana) {
+      resultado.semanas[w] = { estado: 'gris' };
+    } else if (w === ahoraISO.semana) {
+      resultado.semanas[w] = { estado: 'amber' };
+    } else {
+      resultado.semanas[w] = { estado: 'rojo' };
+    }
+  }
+  return resultado;
+}
+
+/* =====================================================
+   COMPROBAR TODO
+   ===================================================== */
+async function comprobarTodo() {
+  if (!CONFIG?.tareas) return;
+  if (basesPendientes().length > 0) {
+    alert('Faltan bases por conectar. Pulsa "Seleccionar" en cada una.');
+    return;
+  }
+  const loader = document.getElementById('loader');
+  loader.classList.add('activo');
+  RESULTADOS = {};
+
+  for (const tarea of CONFIG.tareas) {
+    try {
+      if (tarea.periodicidad === 'diaria') {
+        RESULTADOS[tarea.id] = await comprobarTareaDiaria(tarea);
+      } else if (tarea.periodicidad === 'semanal') {
+        RESULTADOS[tarea.id] = await comprobarTareaSemanal(tarea);
+      } else {
+        RESULTADOS[tarea.id] = await comprobarTareaMensual(tarea);
+      }
+    } catch (e) {
+      console.error('Error comprobando', tarea.nombre, e);
+      RESULTADOS[tarea.id] = { error: e.message };
+    }
+  }
+
+  loader.classList.remove('activo');
+  const ahora = new Date();
+  document.getElementById('ultima-comprobacion').textContent =
+    'Última comprobación: ' + ahora.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+  renderResultados();
+}
+
+/* =====================================================
+   APERTURA DE ARCHIVOS Y CARPETAS
+   ===================================================== */
+function uncAFileURL(unc, ...partes) {
+  // Convierte \\servidor\share\... y partes adicionales en file://servidor/share/...
+  let trozos = [unc, ...partes].filter(p => p);
+  let ruta = trozos.join('\\');
+  ruta = ruta.replace(/\\+/g, '\\').replace(/\\$/, '');
+  let m = ruta.match(/^\\\\([^\\]+)\\(.*)$/);
+  if (!m) return null;
+  const [, host, resto] = m;
+  const segs = resto.split('\\').map(s => encodeURIComponent(s));
+  return 'file://' + host + '/' + segs.join('/');
+}
+
+function rutaUNCArchivo(tarea, nombreArchivo, mes) {
+  const base = CONFIG.bases.find(b => b.id === tarea.baseId);
+  if (!base) return null;
+  let rutaRel = String(tarea.rutaRelativa || '')
+    .replace(/\{YYYY\}/g, ANIO_ACTUAL)
+    .replace(/\{MM\}/g, String(mes || MES_ACTUAL).padStart(2,'0'))
+    .replace(/\{MES_TEXTO\}/g, MESES[(mes || MES_ACTUAL)-1]);
+  // Cuando hay subcarpeta de mes y conocemos el mes, intentamos añadirla con el nombre canónico.
+  // Si el nombre real difiere (MAYO vs Mayo), file:// generalmente no es sensible a mayúsculas en Windows.
+  if (tarea.rutaConSubcarpetaMes && mes) {
+    const nombreMes = MESES[mes-1];
+    rutaRel = rutaRel.replace(/[\\\/]+$/, '') + '\\' + nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+  }
+  return uncAFileURL(base.rutaUNC, rutaRel, nombreArchivo);
+}
+
+function abrirOriginal(url) {
+  if (!url) {
+    alert('No se pudo construir la ruta UNC del archivo.');
+    return;
+  }
+  // Abrir en nueva pestaña — Windows lanzará Excel respetando bloqueos.
+  const w = window.open(url, '_blank');
+  if (!w) {
+    // Si el bloqueador de pop-ups o la zona de seguridad lo impide, copiar al portapapeles
+    navigator.clipboard?.writeText(url.replace(/^file:\/\//, '\\\\').replace(/\//g, '\\').replace(/%20/g, ' '));
+    alert('Edge bloqueó la apertura directa.\n\nLa ruta se copió al portapapeles — pégala en el Explorador o en "Ejecutar" (Win+R).');
+  }
+}
+
+async function abrirCopia(fileHandle) {
+  try {
+    const file = await fileHandle.getFile();
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) { alert('No se pudo abrir la copia: ' + e.message); }
+}
+
+async function abrirCarpetaModal(tareaId) {
+  const tarea = CONFIG.tareas.find(t => t.id === tareaId);
+  const r = RESULTADOS[tareaId];
+  if (!r?.carpetaHandle) {
+    const base = CONFIG.bases.find(b => b.id === tarea.baseId);
+    const rutaCompleta = (base?.rutaUNC || '') + '\\' + (tarea.rutaRelativa || '');
+    alert('No se ha podido localizar la carpeta. Comprueba la ruta:\n\n' + rutaCompleta);
+    return;
+  }
+  const archivos = await listarArchivos(r.carpetaHandle, tarea.extension);
+  archivos.sort((a, b) => b.nombre.localeCompare(a.nombre));
+  abrirModalCarpeta(tarea, archivos);
+}
+
+function abrirModalCarpeta(tarea, archivos) {
+  const base = CONFIG.bases.find(b => b.id === tarea.baseId);
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(26,26,26,0.5);z-index:1000;display:grid;place-items:center;padding:20px;';
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg-card);border-radius:var(--radius);max-width:680px;width:100%;max-height:80vh;display:flex;flex-direction:column;border:1px solid var(--line);';
+  modal.innerHTML = `
+    <div style="padding:20px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:20px;margin-bottom:2px;">${escapar(tarea.nombre)}</h3>
+        <small style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:0.1em;">${archivos.length} archivos</small>
+      </div>
+      <button id="cerrar-modal" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-mute);">×</button>
+    </div>
+    <div style="overflow-y:auto;padding:8px 0;" id="lista-archivos"></div>
+    <div style="padding:14px 24px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:0.08em;word-break:break-all;">${escapar((base?.rutaUNC || '') + '\\' + (tarea.rutaRelativa || ''))}</div>
+  `;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  const lista = modal.querySelector('#lista-archivos');
+  if (archivos.length === 0) {
+    lista.innerHTML = '<div style="padding:40px;text-align:center;color:var(--ink-mute);">No hay archivos en esta carpeta</div>';
+  } else {
+    archivos.forEach(a => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:10px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line-soft);';
+      item.innerHTML = `
+        <span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapar(a.nombre)}</span>
+        <span style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-mini btn-orig">Abrir original</button>
+          <button class="btn btn-secondary btn-mini btn-copia">Copia</button>
+        </span>
+      `;
+      const url = uncAFileURL((base?.rutaUNC || ''), tarea.rutaRelativa, a.nombre);
+      item.querySelector('.btn-orig').onclick = () => abrirOriginal(url);
+      item.querySelector('.btn-copia').onclick = () => abrirCopia(a.handle);
+      lista.appendChild(item);
+    });
+  }
+  modal.querySelector('#cerrar-modal').onclick = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+}
+
+/* =====================================================
+   RENDER DE RESULTADOS
+   ===================================================== */
+function renderResultados() {
+  if (!CONFIG?.tareas) return;
+  const tareas = CONFIG.tareas.filter(t => FILTRO_AREA === '__todas' || t.area === FILTRO_AREA);
+
+  let totalCeldas = 0, verdes = 0, ambers = 0, rojos = 0;
+  tareas.forEach(t => {
+    const r = RESULTADOS[t.id];
+    if (!r) return;
+    let coleccion;
+    if (t.periodicidad === 'diaria') coleccion = Object.values(r.dias || {});
+    else if (t.periodicidad === 'semanal') coleccion = Object.values(r.semanas || {});
+    else coleccion = Object.values(r.meses || {});
+    coleccion.forEach(c => {
+      if (c.estado === 'gris' || c.estado === 'sin-carpeta') return;
+      totalCeldas++;
+      if (c.estado === 'verde') verdes++;
+      else if (c.estado === 'amber') ambers++;
+      else if (c.estado === 'rojo') rojos++;
+    });
+  });
+  document.getElementById('m-total').textContent = tareas.length;
+  document.getElementById('m-total-detalle').textContent = totalCeldas + ' periodos analizados';
+  document.getElementById('m-verde').textContent = verdes;
+  document.getElementById('m-verde-detalle').textContent = totalCeldas ? Math.round(verdes/totalCeldas*100) + '% completado' : '—';
+  document.getElementById('m-amber').textContent = ambers;
+  document.getElementById('m-rojo').textContent = rojos;
+
+  renderMatrizMensuales(tareas);
+  renderMatrizSemanales(tareas);
+  renderDiarias(tareas);
+}
+
+function renderTareaMeta(tarea) {
+  return `${escapar(tarea.area)} · ${tarea.periodicidad}`;
+}
+
+function renderDiagnostico(tarea, diag) {
+  if (!diag || diag.handle) return '';
+  const base = CONFIG.bases.find(b => b.id === tarea.baseId);
+  const rutaEsperada = (base?.rutaUNC || '') + '\\' + (tarea.rutaRelativa || '');
+  let msg = `<strong>No se encontró</strong> <code>${escapar(diag.fallaEn)}</code> al navegar la ruta.`;
+  if (diag.disponibles?.length) {
+    msg += `<br><span style="opacity:0.85;">Disponibles: ${diag.disponibles.slice(0, 8).map(d => `<code>${escapar(d)}</code>`).join(', ')}${diag.disponibles.length > 8 ? '…' : ''}</span>`;
+  }
+  msg += `<br><small style="opacity:0.7;">Ruta esperada: ${escapar(rutaEsperada)}</small>`;
+  return `<div class="tarea-error">${msg}</div>`;
+}
+
+function renderMatrizMensuales(tareas) {
+  const mensuales = tareas.filter(t => t.periodicidad === 'mensual' || t.periodicidad === 'anual');
+  const bloque = document.getElementById('bloque-mensuales');
+  if (mensuales.length === 0) { bloque.style.display = 'none'; return; }
+  bloque.style.display = 'block';
+
+  const tbody = document.querySelector('#tabla-matriz tbody');
+  tbody.innerHTML = '';
+  mensuales.forEach(tarea => {
+    const r = RESULTADOS[tarea.id] || { meses: {} };
+    const tr = document.createElement('tr');
+    const tdNombre = document.createElement('td');
+    tdNombre.className = 'col-tarea';
+    tdNombre.innerHTML = `
+      <div class="tarea-nombre" data-id="${tarea.id}">
+        ${escapar(tarea.nombre)}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div class="tarea-meta">${renderTareaMeta(tarea)}</div>
+      ${renderDiagnostico(tarea, r.diagnostico)}
+    `;
+    tdNombre.querySelector('.tarea-nombre').onclick = () => abrirCarpetaModal(tarea.id);
+    tr.appendChild(tdNombre);
+
+    for (let m = 1; m <= 12; m++) {
+      const td = document.createElement('td');
+      const datos = r.meses?.[m] || { estado: 'gris' };
+      const celda = document.createElement('div');
+      celda.className = 'celda ' + (datos.estado === 'sin-carpeta' ? 'rojo' : datos.estado);
+      celda.textContent = datos.estado === 'verde' ? '✓' :
+                          datos.estado === 'amber' ? '·' :
+                          datos.estado === 'rojo' || datos.estado === 'sin-carpeta' ? '✕' : '';
+      if (datos.estado === 'verde' && datos.handle) {
+        celda.classList.add('clicable');
+        celda.dataset.tooltip = datos.archivo + ' · clic = abrir original';
+        celda.onclick = () => {
+          const url = uncAFileURL(
+            CONFIG.bases.find(b => b.id === tarea.baseId)?.rutaUNC,
+            tarea.rutaRelativa,
+            datos.archivo
+          );
+          abrirOriginal(url);
+        };
+      } else if (datos.estado === 'sin-carpeta') {
+        celda.dataset.tooltip = 'Carpeta no localizada';
+      } else if (datos.estado === 'rojo') {
+        celda.dataset.tooltip = 'Sin archivo para ' + MESES[m-1];
+      } else if (datos.estado === 'amber') {
+        celda.dataset.tooltip = 'Mes en curso';
+      }
+      td.appendChild(celda);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+function renderMatrizSemanales(tareas) {
+  const semanales = tareas.filter(t => t.periodicidad === 'semanal');
+  const bloque = document.getElementById('bloque-semanales');
+  if (semanales.length === 0) { bloque.style.display = 'none'; return; }
+  bloque.style.display = 'block';
+
+  const totalSem = semanasEnAnioISO(ANIO_ACTUAL);
+  const thRow = document.getElementById('th-semanas');
+  thRow.innerHTML = '<th class="col-tarea-th">Tarea</th>';
+  for (let w = 1; w <= totalSem; w++) {
+    const th = document.createElement('th');
+    th.textContent = 'S' + String(w).padStart(2,'0');
+    thRow.appendChild(th);
+  }
+
+  const tbody = document.querySelector('#tabla-semanas tbody');
+  tbody.innerHTML = '';
+  semanales.forEach(tarea => {
+    const r = RESULTADOS[tarea.id] || { semanas: {} };
+    const tr = document.createElement('tr');
+    const tdNombre = document.createElement('td');
+    tdNombre.className = 'col-tarea';
+    tdNombre.innerHTML = `
+      <div class="tarea-nombre" data-id="${tarea.id}">
+        ${escapar(tarea.nombre)}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <div class="tarea-meta">${renderTareaMeta(tarea)}</div>
+      ${renderDiagnostico(tarea, r.diagnostico)}
+    `;
+    tdNombre.querySelector('.tarea-nombre').onclick = () => abrirCarpetaModal(tarea.id);
+    tr.appendChild(tdNombre);
+
+    for (let w = 1; w <= totalSem; w++) {
+      const td = document.createElement('td');
+      const datos = r.semanas?.[w] || { estado: 'gris' };
+      const celda = document.createElement('div');
+      celda.className = 'celda celda-semana ' + datos.estado;
+      celda.textContent = datos.estado === 'verde' ? '✓' :
+                          datos.estado === 'amber' ? '·' :
+                          datos.estado === 'rojo' ? '✕' : '';
+      const { lunes, domingo } = fechasDeSemanaISO(ANIO_ACTUAL, w);
+      const rango = `${lunes.getDate()}/${lunes.getMonth()+1} – ${domingo.getDate()}/${domingo.getMonth()+1}`;
+      if (datos.estado === 'verde' && datos.handle) {
+        celda.classList.add('clicable');
+        celda.dataset.tooltip = datos.archivo;
+        celda.onclick = () => {
+          const url = uncAFileURL(
+            CONFIG.bases.find(b => b.id === tarea.baseId)?.rutaUNC,
+            tarea.rutaRelativa,
+            datos.archivo
+          );
+          abrirOriginal(url);
+        };
+      } else {
+        celda.dataset.tooltip = 'S' + w + ' · ' + rango;
+      }
+      td.appendChild(celda);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+function renderDiarias(tareas) {
+  const diarias = tareas.filter(t => t.periodicidad === 'diaria');
+  const bloque = document.getElementById('bloque-diarias');
+  const grid = document.getElementById('diarias-grid');
+  if (diarias.length === 0) { bloque.style.display = 'none'; return; }
+  bloque.style.display = 'block';
+  grid.innerHTML = '';
+
+  diarias.forEach(tarea => {
+    const r = RESULTADOS[tarea.id] || { dias: {} };
+    const card = document.createElement('div');
+    card.className = 'diaria-card';
+
+    const diasMes = new Date(ANIO_ACTUAL, MES_ACTUAL, 0).getDate();
+    let hechos = 0, esperados = 0;
+    for (let d = 1; d <= DIA_ACTUAL; d++) {
+      const dato = r.dias?.[MES_ACTUAL + '-' + d];
+      if (!dato) continue;
+      if (dato.finSemana && tarea.diasLaborables) continue;
+      esperados++;
+      if (dato.estado === 'verde') hechos++;
+    }
+
+    card.innerHTML = `
+      <div class="diaria-header">
+        <div>
+          <div class="diaria-titulo" data-id="${tarea.id}">
+            ${escapar(tarea.nombre)}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="tarea-meta" style="margin-top:3px;">${escapar(tarea.area)} · diaria${tarea.diasLaborables ? ' (laborables)' : ''}</div>
+        </div>
+        <div class="diaria-resumen">
+          ${hechos}/${esperados}<small>este mes</small>
+        </div>
+      </div>
+      ${renderDiagnostico(tarea, r.diagnostico)}
+      <div class="calendario-mes" id="cal-${tarea.id}"></div>
+    `;
+    card.querySelector('.diaria-titulo').onclick = () => abrirCarpetaModal(tarea.id);
+    grid.appendChild(card);
+
+    const cal = card.querySelector('.calendario-mes');
+    ['L','M','X','J','V','S','D'].forEach(d => {
+      const c = document.createElement('div');
+      c.className = 'cal-dia-cab';
+      c.textContent = d;
+      cal.appendChild(c);
+    });
+    const primero = new Date(ANIO_ACTUAL, MES_ACTUAL-1, 1);
+    let offset = primero.getDay() - 1;
+    if (offset === -1) offset = 6;
+    for (let i = 0; i < offset; i++) {
+      cal.appendChild(document.createElement('div'));
+    }
+    for (let d = 1; d <= diasMes; d++) {
+      const dato = r.dias?.[MES_ACTUAL + '-' + d] || { estado: 'gris' };
+      const div = document.createElement('div');
+      div.className = 'cal-dia ' + dato.estado;
+      if (dato.finSemana) div.classList.add('fin-semana');
+      if (d === DIA_ACTUAL && MES_ACTUAL === HOY.getMonth()+1) div.classList.add('hoy');
+      div.textContent = d;
+      if (dato.estado === 'verde' && dato.handle) {
+        div.dataset.tooltip = dato.archivo;
+        div.onclick = () => {
+          const url = rutaUNCArchivo(tarea, dato.archivo, dato.mes);
+          abrirOriginal(url);
+        };
+      } else if (dato.estado === 'rojo') {
+        div.dataset.tooltip = 'Pendiente día ' + d;
+      } else if (dato.estado === 'amber') {
+        div.dataset.tooltip = 'Hoy';
+      }
+      cal.appendChild(div);
+    }
+  });
+}
+
+/* =====================================================
+   INIT
+   ===================================================== */
+document.getElementById('btn-comprobar').onclick = comprobarTodo;
+document.getElementById('btn-recargar-config').onclick = cargarConfigManual;
+
+(async () => {
+  const ok = await cargarConfigPorDefecto();
+  if (!ok) {
+    document.getElementById('bases-resumen').textContent = 'sin config';
+    document.getElementById('bases-lista').innerHTML =
+      '<div class="base-row"><div class="base-info"><span style="font-size:13px;">No se encontró <code>config.json</code> junto al HTML. Pulsa "Cargar config".</span></div></div>';
+    return;
+  }
+  await iniciarBases();
+  renderFiltros();
+  renderBases();
+})();
+</script>
+</body>
+</html>
