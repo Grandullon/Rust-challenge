@@ -875,37 +875,9 @@ async function borrarHandleBase(baseId) {
    CARGA DE CONFIGURACIÓN
    ===================================================== */
 async function cargarConfigPorDefecto() {
-  // Intenta primero un config.json externo (si lo hay junto al HTML).
-  // Si no, usa la configuración embebida.
-  try {
-    const res = await fetch('config.json');
-    if (res.ok) {
-      CONFIG = await res.json();
-      return true;
-    }
-  } catch (_) { /* fetch falla en file:// — uso config embebida */ }
+  // Configuración embebida — todo en este archivo, no se necesita config.json externo.
   CONFIG = JSON.parse(JSON.stringify(CONFIG_EMBEBIDA));
   return true;
-}
-
-function cargarConfigManual() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json,application/json';
-  input.onchange = async () => {
-    const file = input.files[0];
-    if (!file) return;
-    try {
-      CONFIG = JSON.parse(await file.text());
-      HANDLES_BASES = {};
-      await iniciarBases();
-      renderFiltros();
-      renderBases();
-    } catch (e) {
-      alert('Error al cargar config.json: ' + e.message);
-    }
-  };
-  input.click();
 }
 
 function renderFiltros() {
@@ -1797,14 +1769,29 @@ function renderDiarias(tareas) {
    ===================================================== */
 document.getElementById('btn-comprobar').onclick = comprobarTodo;
 
+function mostrarErrorFatal(e) {
+  const lista = document.getElementById('bases-lista');
+  if (lista) {
+    lista.innerHTML = `<div style="padding:20px;background:var(--red-bg);color:var(--red);border-radius:var(--radius);font-size:13px;line-height:1.5;">
+      <strong>Error al inicializar el dashboard:</strong><br>
+      <code style="font-family:'JetBrains Mono',monospace;display:block;margin-top:8px;padding:8px;background:rgba(0,0,0,0.05);border-radius:3px;white-space:pre-wrap;word-break:break-all;">${escapar(e.message || String(e))}${e.stack ? '\n\n' + e.stack : ''}</code>
+      <p style="margin-top:10px;font-size:12.5px;">Pulsa F12 → pestaña "Consola" para más detalles. Avisa a Paco con esta captura.</p>
+    </div>`;
+  }
+  console.error('[Dashboard] Error fatal:', e);
+}
+
 (async () => {
-  await cargarConfigPorDefecto();
-  await iniciarBases();
-  renderFiltros();
-  renderBases();
-  // Si todas las bases ya están conectadas (de sesiones anteriores), comprobar solo
-  if (CONFIG?.tareas?.length && basesPendientes().length === 0) {
-    comprobarTodo();
+  try {
+    await cargarConfigPorDefecto();
+    await iniciarBases();
+    renderFiltros();
+    renderBases();
+    if (CONFIG?.tareas?.length && basesPendientes().length === 0) {
+      comprobarTodo();
+    }
+  } catch (e) {
+    mostrarErrorFatal(e);
   }
 })();
 </script>
