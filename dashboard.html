@@ -624,10 +624,6 @@
         <div class="loader"></div>
         <span>Comprobando archivos...</span>
       </div>
-      <button class="btn btn-secondary" id="btn-recargar-config">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Cargar config
-      </button>
       <button class="btn" id="btn-comprobar" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Comprobar ahora
@@ -636,8 +632,10 @@
   </header>
 
   <div class="aviso info" id="aviso-bienvenida">
-    <h4>Cómo funciona</h4>
-    Para cada <strong>base</strong> de carpetas (panel inferior) pulsa "Seleccionar" y elige la carpeta UNC indicada. <strong>No selecciones la raíz <code>\\Alhambra\grupo$</code> directamente</strong> — Windows la bloquea por contener archivos de sistema. El navegador recordará tus elecciones para próximas sesiones. Después pulsa <strong>Comprobar ahora</strong>.
+    <h4>Primer uso (solo una vez)</h4>
+    Para cada <strong>base</strong> del panel inferior pulsa "Seleccionar". Cuando se abra el explorador <strong>navega hacia dentro</strong> hasta la ruta indicada y elígela ahí — <strong>no selecciones <code>\\Alhambra\grupo$</code> directamente</strong> porque Windows lo bloquea. Una vez configuradas las bases, las próximas veces basta con abrir este archivo y se comprobará solo.
+    <br><br>
+    <strong style="color:var(--red);">Importante:</strong> guarda este archivo en una ubicación fija (no en Descargas, no descargues copias nuevas con sufijos <code>(1)</code>, <code>(2)</code>…) — si la ruta del archivo cambia, el navegador olvida los permisos y hay que volver a configurar.
   </div>
 
   <div class="bases-panel no-conectado" id="bases-panel">
@@ -742,6 +740,73 @@
 const MESES = ['enero','febrero','marzo','abril','mayo','junio',
                'julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
+/* ---------- CONFIGURACIÓN POR DEFECTO (embebida) ----------
+   Edita este bloque para añadir/quitar tareas. Si existe un
+   config.json junto al HTML, sobrescribe esta configuración. */
+const CONFIG_EMBEBIDA = {
+  bases: [
+    {
+      id: 'personal_activo_root',
+      nombre: 'Personal Activo y derivados',
+      rutaUNC: '\\\\Alhambra\\grupo$\\HUVN-PERSONAL-ACTIVO'
+    },
+    {
+      id: 'seguimiento_jc_ca',
+      nombre: 'Seguimiento JC / CA 2026',
+      rutaUNC: '\\\\Alhambra\\grupo$\\GrupodeApoyoGestion\\H. VIRGEN NIEVES 2026\\SEGUIMIENTO JC_CA'
+    }
+  ],
+  tareas: [
+    {
+      id: 'continuidad_asistencial',
+      nombre: 'Continuidad Asistencial',
+      area: 'Dirección Médica',
+      baseId: 'seguimiento_jc_ca',
+      rutaRelativa: 'CONTINUIDAD ASISTENCIAL\\C.A. X MESES',
+      rutaConSubcarpetaMes: false,
+      periodicidad: 'mensual',
+      patronArchivo: '{MM}-{YYYY}-CA',
+      extension: 'xlsx'
+    },
+    {
+      id: 'personal_activo',
+      nombre: 'Personal Activo',
+      area: 'RRHH',
+      baseId: 'personal_activo_root',
+      rutaRelativa: 'Personal Activo\\{YYYY}',
+      rutaConSubcarpetaMes: false,
+      periodicidad: 'diaria',
+      patronArchivo: 'PA-{YYYY}-{MM}-{DD}',
+      extension: 'xlsx',
+      diasLaborables: true
+    },
+    {
+      id: 'it_diaria',
+      nombre: 'IT Diaria',
+      area: 'RRHH',
+      baseId: 'personal_activo_root',
+      rutaRelativa: 'IT DIARIA\\IT DIARIA\\{YYYY}',
+      rutaConSubcarpetaMes: true,
+      periodicidad: 'diaria',
+      patronArchivo: 'IT-HVN-{YYYY}-{MM}-{DD}',
+      extension: 'xlsx',
+      diasLaborables: true
+    },
+    {
+      id: 'altas_it',
+      nombre: 'Altas IT',
+      area: 'RRHH',
+      baseId: 'personal_activo_root',
+      rutaRelativa: 'IT DIARIA\\ALTAS IT\\{YYYY}',
+      rutaConSubcarpetaMes: true,
+      periodicidad: 'diaria',
+      patronArchivo: 'ALTAS IT A {YYYY}-{MM}-{DD}',
+      extension: 'xlsx',
+      diasLaborables: true
+    }
+  ]
+};
+
 let CONFIG = null;
 let HANDLES_BASES = {};      // { baseId: FileSystemDirectoryHandle }
 let RESULTADOS = {};         // { tareaId: {...} }
@@ -810,15 +875,17 @@ async function borrarHandleBase(baseId) {
    CARGA DE CONFIGURACIÓN
    ===================================================== */
 async function cargarConfigPorDefecto() {
+  // Intenta primero un config.json externo (si lo hay junto al HTML).
+  // Si no, usa la configuración embebida.
   try {
     const res = await fetch('config.json');
-    if (!res.ok) throw new Error('No se encontró config.json');
-    CONFIG = await res.json();
-    return true;
-  } catch (e) {
-    console.warn('config.json no disponible:', e.message);
-    return false;
-  }
+    if (res.ok) {
+      CONFIG = await res.json();
+      return true;
+    }
+  } catch (_) { /* fetch falla en file:// — uso config embebida */ }
+  CONFIG = JSON.parse(JSON.stringify(CONFIG_EMBEBIDA));
+  return true;
 }
 
 function cargarConfigManual() {
@@ -893,18 +960,61 @@ async function seleccionarBase(baseId) {
     alert('Tu navegador no soporta el acceso a carpetas. Usa Edge o Chrome actualizado.');
     return;
   }
+  // Antes del picker, muestro un aviso guiado
+  const continuar = await mostrarGuiaPicker(base);
+  if (!continuar) return;
   try {
     const handle = await window.showDirectoryPicker({
       mode: 'read',
       id: 'huvn-' + baseId
     });
+    // Validación: si el usuario eligió la raíz del share o algo demasiado superficial, avisar
+    if (handle.name && handle.name.toLowerCase() === 'grupo$') {
+      alert('Has seleccionado la raíz del recurso compartido (grupo$). Vuelve a intentarlo y entra dentro hasta la carpeta exacta:\n\n' + base.rutaUNC);
+      return;
+    }
     HANDLES_BASES[baseId] = handle;
     await guardarHandleBase(baseId, handle);
     renderBases();
     actualizarBotonComprobar();
+    // Si todas las bases ya están conectadas, comprobar automáticamente
+    if (basesPendientes().length === 0) comprobarTodo();
   } catch (e) {
     if (e.name !== 'AbortError') alert('No se pudo acceder a la carpeta: ' + e.message);
   }
+}
+
+function mostrarGuiaPicker(base) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(26,26,26,0.55);z-index:1000;display:grid;place-items:center;padding:20px;';
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--bg-card);border-radius:var(--radius);max-width:560px;width:100%;border:1px solid var(--line);overflow:hidden;';
+    modal.innerHTML = `
+      <div style="padding:22px 26px 14px;">
+        <h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;margin-bottom:6px;">Selecciona la carpeta exacta</h3>
+        <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.55;">
+          En el explorador que se abrirá, navega hasta esta ruta concreta y pulsa "Seleccionar carpeta":
+        </p>
+        <div style="margin:14px 0;padding:14px 16px;background:var(--bg-soft);border-radius:var(--radius);font-family:'JetBrains Mono',monospace;font-size:12px;word-break:break-all;border-left:3px solid var(--accent);">
+          ${escapar(base.rutaUNC)}
+        </div>
+        <div style="background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:3px;font-size:12.5px;line-height:1.5;">
+          <strong>No selecciones</strong> <code style="font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,0.05);padding:1px 4px;border-radius:2px;">\\\\Alhambra\\grupo$</code> directamente — Windows lo bloquea por contener archivos de sistema. Tienes que entrar dentro de esa carpeta.
+        </div>
+      </div>
+      <div style="padding:14px 26px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary" id="g-cancelar">Cancelar</button>
+        <button class="btn" id="g-ok">Abrir explorador</button>
+      </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    const cerrar = (v) => { overlay.remove(); resolve(v); };
+    modal.querySelector('#g-ok').onclick = () => cerrar(true);
+    modal.querySelector('#g-cancelar').onclick = () => cerrar(false);
+    overlay.onclick = (e) => { if (e.target === overlay) cerrar(false); };
+  });
 }
 
 async function reautorizarBase(baseId) {
@@ -1631,19 +1741,16 @@ function renderDiarias(tareas) {
    INIT
    ===================================================== */
 document.getElementById('btn-comprobar').onclick = comprobarTodo;
-document.getElementById('btn-recargar-config').onclick = cargarConfigManual;
 
 (async () => {
-  const ok = await cargarConfigPorDefecto();
-  if (!ok) {
-    document.getElementById('bases-resumen').textContent = 'sin config';
-    document.getElementById('bases-lista').innerHTML =
-      '<div class="base-row"><div class="base-info"><span style="font-size:13px;">No se encontró <code>config.json</code> junto al HTML. Pulsa "Cargar config".</span></div></div>';
-    return;
-  }
+  await cargarConfigPorDefecto();
   await iniciarBases();
   renderFiltros();
   renderBases();
+  // Si todas las bases ya están conectadas (de sesiones anteriores), comprobar solo
+  if (CONFIG?.tareas?.length && basesPendientes().length === 0) {
+    comprobarTodo();
+  }
 })();
 </script>
 </body>
