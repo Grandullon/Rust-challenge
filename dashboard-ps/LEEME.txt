@@ -1,0 +1,101 @@
+Dashboard de Tareas Periódicas · HUVN · RRHH
+============================================
+
+PRIMERA INSTALACIÓN
+-------------------
+1. Crea (si no existe) la carpeta donde vivirá el dashboard, por ejemplo:
+   \\Alhambra\grupo$\CapituloI\Dashboard\
+
+2. Copia los siguientes 3 archivos a esa carpeta:
+     - actualizar-dashboard.bat
+     - actualizar-dashboard.ps1
+     - plantilla.html
+
+3. Haz doble clic en "actualizar-dashboard.bat".
+   Se abrirá una ventana negra (PowerShell) que comprueba las
+   carpetas, genera "dashboard.html" en la misma carpeta y lo
+   abre automáticamente en tu navegador.
+
+
+USO DIARIO
+----------
+- Para REFRESCAR los datos:
+    Doble clic en "actualizar-dashboard.bat".
+
+- Para SOLO VER lo último que se generó (sin volver a escanear):
+    Doble clic en "dashboard.html".
+
+  Como el HTML lleva los datos pre-calculados dentro, abrirlo es
+  instantáneo y funciona en cualquier navegador (Edge, Chrome, lo
+  que sea) sin pedir permisos ni configuración.
+
+
+ABRIR LOS ARCHIVOS DESDE EL DASHBOARD
+-------------------------------------
+- Clic en el nombre de una tarea (con el icono 📁) → abre la carpeta
+  donde vive esa tarea.
+- Clic en una celda verde (con ✓) → abre el archivo Excel concreto.
+
+Estos clics generan enlaces "file://..." que Windows abre con Excel
+respetando los bloqueos de "ya abierto por otro usuario". Si Edge
+te pregunta si quieres permitir abrir el archivo, marca "Recordar
+mi elección" y "Abrir".
+
+
+AÑADIR O MODIFICAR TAREAS
+-------------------------
+Edita "actualizar-dashboard.ps1" con el Bloc de notas (o cualquier
+editor). Busca la sección $tareas = @( ... ) y añade un nuevo
+bloque siguiendo el ejemplo. Luego vuelve a ejecutar el .bat.
+
+Tokens admitidos en Ruta y Patron:
+  {YYYY}       → año (2026)
+  {MM}         → mes 2 dígitos (01-12)
+  {DD}         → día 2 dígitos (01-31)
+  {MES_TEXTO}  → nombre del mes en español (enero, febrero...)
+
+
+PROGRAMAR ACTUALIZACIÓN AUTOMÁTICA (opcional)
+---------------------------------------------
+Si quieres que el dashboard se refresque solo cada mañana sin que
+nadie tenga que hacer doble clic:
+
+1. Abre el "Programador de tareas" de Windows
+   (Inicio → escribe "Programador de tareas").
+2. Acción → Crear tarea básica.
+3. Nombre: "Refrescar dashboard HUVN".
+4. Desencadenador: Diariamente, a las 7:30 (por ejemplo).
+5. Acción: Iniciar un programa.
+6. Programa o script:
+     powershell.exe
+   Argumentos:
+     -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "\\Alhambra\grupo$\CapituloI\Dashboard\actualizar-dashboard.ps1"
+7. Finalizar.
+
+A la mañana siguiente, al llegar y abrir dashboard.html, ya estará
+con los datos del día.
+
+
+PROBLEMAS HABITUALES
+--------------------
+* "El sistema no puede ejecutar el archivo .ps1 porque está
+   restringido por la directiva de ejecución."
+   → Usa SIEMPRE el .bat para lanzarlo, nunca el .ps1 directamente.
+     El .bat aplica un bypass solo para esa ejecución.
+
+* "No se localiza la carpeta" (en una tarea concreta).
+   → Comprueba la ruta dentro de actualizar-dashboard.ps1. Si tu
+     jefa renombró una carpeta, hay que reflejar el nuevo nombre.
+
+* El HTML no se actualiza al volver a ejecutar el .bat.
+   → Pulsa Ctrl+F5 en el navegador para forzar recarga.
+
+* No detecta archivos que sí existen.
+   → Comprueba que el patrón coincide. Por ejemplo si pusiste el
+     mes en otro orden ("CA-02-2026" en vez de "02-2026-CA"),
+     ajusta el campo Patron en la configuración.
+
+
+CONTACTO
+--------
+Cualquier cosa que falle o quieras añadir, díselo a Paco.
