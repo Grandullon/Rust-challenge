@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="0">
 <title>Dashboard de Tareas · HUVN · RRHH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -726,7 +729,7 @@
   </div>
 
   <footer>
-    <span>HUVN · Servicio Andaluz de Salud · Granada</span>
+    <span>HUVN · Servicio Andaluz de Salud · Granada · <span id="version-stamp"></span></span>
     <span id="ultima-comprobacion">Última comprobación: —</span>
   </footer>
 
@@ -736,6 +739,8 @@
 /* =====================================================
    DASHBOARD DE TAREAS PERIÓDICAS · HUVN · RRHH
    ===================================================== */
+
+const VERSION_DASHBOARD = '2026.05.08-v6';
 
 const MESES = ['enero','febrero','marzo','abril','mayo','junio',
                'julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -821,6 +826,7 @@ document.getElementById('anio-actual').textContent = ANIO_ACTUAL;
 document.getElementById('anio-matriz').textContent = ANIO_ACTUAL;
 document.getElementById('anio-semanas').textContent = ANIO_ACTUAL;
 document.getElementById('mes-curso').textContent = MESES[MES_ACTUAL-1].toUpperCase() + ' ' + ANIO_ACTUAL;
+document.getElementById('version-stamp').textContent = 'V. ' + VERSION_DASHBOARD;
 
 /* =====================================================
    PERSISTENCIA EN INDEXEDDB
@@ -1006,19 +1012,24 @@ function mostrarGuiaPicker(base) {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(26,26,26,0.55);z-index:1000;display:grid;place-items:center;padding:20px;';
     const modal = document.createElement('div');
-    modal.style.cssText = 'background:var(--bg-card);border-radius:var(--radius);max-width:560px;width:100%;border:1px solid var(--line);overflow:hidden;';
+    modal.style.cssText = 'background:var(--bg-card);border-radius:var(--radius);max-width:620px;width:100%;border:1px solid var(--line);overflow:hidden;';
     modal.innerHTML = `
       <div style="padding:22px 26px 14px;">
-        <h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;margin-bottom:6px;">Selecciona la carpeta exacta</h3>
-        <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.55;">
-          En el explorador que se abrirá, navega hasta esta ruta concreta y pulsa "Seleccionar carpeta":
+        <h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:22px;margin-bottom:10px;">Cómo seleccionar la carpeta sin que Windows la bloquee</h3>
+        <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin-bottom:12px;">
+          Si navegas a <code style="font-family:'JetBrains Mono',monospace;background:var(--bg-soft);padding:1px 5px;border-radius:2px;">\\\\Alhambra\\grupo$</code> dentro del explorador, Windows muestra "No se puede abrir esta carpeta porque contiene archivos del sistema". Para evitarlo, <strong>pega la ruta completa en la barra de dirección</strong> del explorador.
         </p>
-        <div style="margin:14px 0;padding:14px 16px;background:var(--bg-soft);border-radius:var(--radius);font-family:'JetBrains Mono',monospace;font-size:12px;word-break:break-all;border-left:3px solid var(--accent);">
-          ${escapar(base.rutaUNC)}
+        <div style="margin:8px 0;padding:14px 16px;background:var(--bg-soft);border-radius:var(--radius);font-family:'JetBrains Mono',monospace;font-size:12px;word-break:break-all;border-left:3px solid var(--accent);display:flex;justify-content:space-between;gap:10px;align-items:center;">
+          <span style="flex:1;min-width:0;">${escapar(base.rutaUNC)}</span>
+          <button class="btn btn-mini" id="g-copiar" style="flex-shrink:0;">Copiar ruta</button>
         </div>
-        <div style="background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:3px;font-size:12.5px;line-height:1.5;">
-          <strong>No selecciones</strong> <code style="font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,0.05);padding:1px 4px;border-radius:2px;">\\\\Alhambra\\grupo$</code> directamente — Windows lo bloquea por contener archivos de sistema. Tienes que entrar dentro de esa carpeta.
-        </div>
+        <ol style="margin:14px 0 8px 18px;padding:0;font-size:13px;color:var(--ink-soft);line-height:1.7;">
+          <li>Pulsa <strong>"Copiar ruta"</strong> aquí arriba (o cópiala manualmente).</li>
+          <li>Pulsa <strong>"Abrir explorador"</strong> abajo. Se abrirá el diálogo de Windows.</li>
+          <li>En el explorador, pulsa <kbd style="background:var(--bg-soft);padding:1px 5px;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11px;">Ctrl + L</kbd> (o haz clic en la barra de dirección de arriba).</li>
+          <li><strong>Pega</strong> la ruta y pulsa <kbd style="background:var(--bg-soft);padding:1px 5px;border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:11px;">Enter</kbd>. Te lleva directamente a la carpeta correcta.</li>
+          <li>Pulsa <strong>"Seleccionar carpeta"</strong>.</li>
+        </ol>
       </div>
       <div style="padding:14px 26px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;">
         <button class="btn btn-secondary" id="g-cancelar">Cancelar</button>
@@ -1028,6 +1039,24 @@ function mostrarGuiaPicker(base) {
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
     const cerrar = (v) => { overlay.remove(); resolve(v); };
+    const btnCopiar = modal.querySelector('#g-copiar');
+    btnCopiar.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(base.rutaUNC);
+        btnCopiar.textContent = '✓ Copiada';
+        setTimeout(() => { btnCopiar.textContent = 'Copiar ruta'; }, 2000);
+      } catch {
+        // Fallback para navegadores antiguos / contextos sin permiso de clipboard
+        const ta = document.createElement('textarea');
+        ta.value = base.rutaUNC;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); btnCopiar.textContent = '✓ Copiada'; }
+        catch { alert('No se pudo copiar. Copia manualmente:\n\n' + base.rutaUNC); }
+        ta.remove();
+        setTimeout(() => { btnCopiar.textContent = 'Copiar ruta'; }, 2000);
+      }
+    };
     modal.querySelector('#g-ok').onclick = () => cerrar(true);
     modal.querySelector('#g-cancelar').onclick = () => cerrar(false);
     overlay.onclick = (e) => { if (e.target === overlay) cerrar(false); };
