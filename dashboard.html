@@ -968,10 +968,16 @@ async function seleccionarBase(baseId) {
       mode: 'read',
       id: 'huvn-' + baseId
     });
-    // Validación: si el usuario eligió la raíz del share o algo demasiado superficial, avisar
+    // Validación: raíz del share
     if (handle.name && handle.name.toLowerCase() === 'grupo$') {
       alert('Has seleccionado la raíz del recurso compartido (grupo$). Vuelve a intentarlo y entra dentro hasta la carpeta exacta:\n\n' + base.rutaUNC);
       return;
+    }
+    // Validación: la carpeta elegida debe coincidir con el último segmento del UNC esperado
+    const esperado = ultimoSegmentoUNC(base.rutaUNC);
+    if (esperado && handle.name && handle.name.toLowerCase() !== esperado.toLowerCase()) {
+      const ok = await confirmarSeleccionIncorrecta(base, handle.name, esperado);
+      if (!ok) return;
     }
     HANDLES_BASES[baseId] = handle;
     await guardarHandleBase(baseId, handle);
@@ -982,6 +988,45 @@ async function seleccionarBase(baseId) {
   } catch (e) {
     if (e.name !== 'AbortError') alert('No se pudo acceder a la carpeta: ' + e.message);
   }
+}
+
+function ultimoSegmentoUNC(unc) {
+  if (!unc) return '';
+  const partes = String(unc).split('\\').filter(p => p.length > 0);
+  return partes[partes.length - 1] || '';
+}
+
+function confirmarSeleccionIncorrecta(base, elegida, esperada) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(26,26,26,0.55);z-index:1000;display:grid;place-items:center;padding:20px;';
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--bg-card);border-radius:var(--radius);max-width:520px;width:100%;border:1px solid var(--line);overflow:hidden;';
+    modal.innerHTML = `
+      <div style="padding:22px 26px 14px;">
+        <h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:21px;margin-bottom:8px;color:var(--red);">⚠ Carpeta probablemente incorrecta</h3>
+        <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin-bottom:14px;">
+          Has seleccionado <code style="font-family:'JetBrains Mono',monospace;background:var(--bg-soft);padding:1px 6px;border-radius:2px;">${escapar(elegida)}</code>, pero esperaba <code style="font-family:'JetBrains Mono',monospace;background:var(--bg-soft);padding:1px 6px;border-radius:2px;">${escapar(esperada)}</code>.
+        </p>
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.5;">
+          Lo más probable es que hayas entrado un nivel de más en el explorador. Vuelve y selecciona exactamente:
+        </p>
+        <div style="margin-top:10px;padding:12px 14px;background:var(--bg-soft);border-radius:var(--radius);font-family:'JetBrains Mono',monospace;font-size:11.5px;word-break:break-all;border-left:3px solid var(--red);">
+          ${escapar(base.rutaUNC)}
+        </div>
+      </div>
+      <div style="padding:14px 26px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn" id="cs-volver">Volver a seleccionar</button>
+        <button class="btn btn-secondary" id="cs-aceptar">Usar igualmente</button>
+      </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    const cerrar = (v) => { overlay.remove(); resolve(v); };
+    modal.querySelector('#cs-volver').onclick = () => cerrar(false);
+    modal.querySelector('#cs-aceptar').onclick = () => cerrar(true);
+    overlay.onclick = (e) => { if (e.target === overlay) cerrar(false); };
+  });
 }
 
 function mostrarGuiaPicker(base) {
@@ -1072,25 +1117,35 @@ function renderBases() {
     const reautorizar = wrap?.necesitaReautorizar;
     if (conectada) conectadas++;
 
+    // Detecto si la carpeta seleccionada parece equivocada
+    const handleReal = conectada ? wrap : (reautorizar ? wrap.handle : null);
+    const esperado = ultimoSegmentoUNC(base.rutaUNC);
+    const elegido = handleReal?.name || '';
+    const desajustada = conectada && esperado && elegido && elegido.toLowerCase() !== esperado.toLowerCase();
+
     const row = document.createElement('div');
     row.className = 'base-row';
     row.innerHTML = `
       <div class="base-info">
-        <div class="base-dot ${conectada ? 'activo' : (reautorizar ? 'error' : '')}"></div>
+        <div class="base-dot ${desajustada ? 'error' : (conectada ? 'activo' : (reautorizar ? 'error' : ''))}"></div>
         <div class="base-texto">
           <strong>${escapar(base.nombre)}</strong>
           <code>${escapar(base.rutaUNC)}</code>
+          ${conectada ? `<div style="font-size:11px;margin-top:3px;color:${desajustada ? 'var(--red)' : 'var(--green)'};">
+            ${desajustada ? '⚠' : '✓'} Carpeta seleccionada: <code style="display:inline;background:var(--bg-soft);padding:1px 5px;border-radius:2px;">${escapar(elegido)}</code>
+            ${desajustada ? `<span style="margin-left:6px;">— se esperaba <code style="display:inline;background:var(--bg-soft);padding:1px 5px;border-radius:2px;">${escapar(esperado)}</code></span>` : ''}
+          </div>` : ''}
         </div>
       </div>
       <div class="base-acciones"></div>
     `;
     const acc = row.querySelector('.base-acciones');
     if (conectada) {
-      const btnOk = document.createElement('span');
-      btnOk.className = 'tarea-meta';
-      btnOk.style.cssText = 'color:var(--green);margin-right:8px;';
-      btnOk.textContent = '✓ CONECTADA';
-      acc.appendChild(btnOk);
+      const btnRe = document.createElement('button');
+      btnRe.className = desajustada ? 'btn btn-mini' : 'btn btn-secondary btn-mini';
+      btnRe.textContent = desajustada ? 'Corregir' : 'Reseleccionar';
+      btnRe.onclick = () => seleccionarBase(base.id);
+      acc.appendChild(btnRe);
       const btnX = document.createElement('button');
       btnX.className = 'btn btn-secondary btn-mini';
       btnX.textContent = 'Olvidar';
