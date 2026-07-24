@@ -63,15 +63,47 @@ Si quieres que el dashboard se refresque automáticamente cada mañana sin que n
 1. Programador de tareas de Windows → Crear tarea básica
 2. Desencadenador: diariamente a las 7:30
 3. Acción: Iniciar un programa → `Dashboard-HUVN.exe`
-4. Argumentos: `--headless`  (modo sin ventana)
+4. Argumentos: `--headless --no-abrir`  (sin ventana y sin abrir el navegador)
 
 Cada mañana el dashboard se genera solo. Los directivos solo abren el HTML guardado en `Documentos\HUVN-Dashboard\dashboard.html`.
 
-## Modificar tareas / añadir nuevas
+## Historial y tendencia
 
-1. Edita `actualizar_dashboard.py` con Visual Studio Code o Notepad++. Busca el bloque `TAREAS = [...]`.
-2. Vuelve a compilar con el mismo comando.
-3. Redistribuye el nuevo `.exe`.
+Cada ejecución guarda un punto de historial (un punto por día, los
+últimos 90 días) en `Documentos\HUVN-Dashboard\historial.json`. A
+partir de la segunda actualización, el dashboard muestra una línea
+de evolución del % de cumplimiento — útil para que dirección vea si
+el equipo mejora o empeora a lo largo del tiempo.
+
+## Modificar tareas / añadir nuevas — SIN recompilar
+
+Las tareas ya **no** viven dentro del .exe. La primera vez que se
+ejecuta, el programa crea un `config.json` editable:
+
+1. Junto al `.exe` si esa carpeta tiene permiso de escritura, o
+2. En `Documentos\HUVN-Dashboard\config.json` si no.
+
+Para añadir/cambiar tareas: abre ese `config.json` con el Bloc de
+notas, edita el bloque `"tareas"`, guarda y vuelve a ejecutar el
+programa. **No hace falta recompilar ni redistribuir nada.**
+
+El propio archivo incluye un bloque `_ayuda` con los tokens
+disponibles (`{YYYY}`, `{MM}`, `{DD}`, `{WW}`, `{MES_TEXTO}`) y la
+descripción de cada campo. Periodicidades soportadas: `diaria`,
+`semanal`, `mensual`, `anual`.
+
+**Truco para gestión centralizada:** si pones el `.exe` en la red
+(p. ej. `\\Alhambra\grupo$\CapituloI\`) y creas el `config.json` en
+esa misma carpeta, todos los directivos que ejecuten ese .exe usarán
+la MISMA configuración. Tú editas el JSON una vez y todos ven los
+cambios en su próxima actualización.
+
+Si el config tiene un error (una coma de más, una periodicidad mal
+escrita...), el programa lo dice con el detalle exacto (archivo,
+línea y qué falta) en la ventana — no se queda en blanco.
+
+Solo hay que recompilar si cambias el CÓDIGO o la PLANTILLA
+(nueva funcionalidad, cambio de diseño).
 
 ## Problemas habituales
 

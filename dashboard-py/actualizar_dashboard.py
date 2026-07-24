@@ -10,11 +10,15 @@ automáticamente en el navegador.
 Diseñado para ser compilado con PyInstaller a un único .exe que
 los directivos puedan ejecutar con doble clic, sin instalar nada.
 
-Uso desde código:
-    python actualizar_dashboard.py
+NOVEDAD: las tareas ya NO van dentro del código. Se leen de un
+config.json que vive junto al .exe (o en Documentos\\HUVN-Dashboard).
+Añadir o cambiar tareas = editar ese JSON. Sin recompilar.
 
-Compilación a .exe:
-    Ver COMPILAR.md
+Uso:
+    python actualizar_dashboard.py               (con ventana)
+    python actualizar_dashboard.py --headless    (sin ventana, para tareas programadas)
+
+Compilación a .exe: ver COMPILAR.md
 """
 
 import os
@@ -27,25 +31,16 @@ import traceback
 from pathlib import Path
 from datetime import datetime, date
 
-import tkinter as tk
-from tkinter import scrolledtext, font as tkfont
+# tkinter se importa de forma perezosa dentro de main_gui() para que el
+# modo --headless funcione también en equipos/servidores sin entorno gráfico.
 
 # ======================================================================
-#                           CONFIGURACIÓN
+#                    TAREAS POR DEFECTO (solo primera vez)
 # ======================================================================
-# Cada tarea define dónde están sus archivos y cómo se llaman.
-# Tokens admitidos en 'ruta' y 'patron':
-#     {YYYY}       año actual (2026)
-#     {MM}         mes 2 dígitos (01-12)
-#     {DD}         día 2 dígitos (01-31, solo en 'patron')
-#     {MES_TEXTO}  nombre del mes en español (enero, febrero...)
-#
-# periodicidad: "mensual" | "diaria" | "anual"
-# subcarpeta_por_mes: True si dentro de 'ruta' hay una subcarpeta por
-#     cada mes (Mayo, MAYO, mayo, 05-Mayo...). Detecta variantes.
-# dias_laborables: solo en diarias. Si True, fines de semana no
-#     se contabilizan como pendientes.
-TAREAS = [
+# Estas tareas solo se usan para CREAR el config.json inicial si no
+# existe. A partir de ahí, la verdad vive en config.json — edítalo
+# con el Bloc de notas y vuelve a ejecutar. NO hace falta recompilar.
+TAREAS_DEFECTO = [
     {
         "id": "continuidad_asistencial",
         "nombre": "Continuidad Asistencial",
@@ -92,6 +87,28 @@ TAREAS = [
     },
 ]
 
+AYUDA_CONFIG = {
+    "_como_editar": "Edita el bloque 'tareas' con el Bloc de notas. Guarda y vuelve a ejecutar el programa. NO hace falta recompilar nada.",
+    "_tokens": {
+        "{YYYY}": "año actual (2026)",
+        "{MM}": "mes 2 dígitos (01-12)",
+        "{DD}": "día 2 dígitos (solo en 'patron')",
+        "{WW}": "semana ISO 2 dígitos (solo tareas semanales)",
+        "{MES_TEXTO}": "nombre del mes en español (enero, febrero...)",
+    },
+    "_campos": {
+        "id": "identificador único, sin espacios",
+        "nombre": "nombre visible en el dashboard",
+        "area": "agrupación para el filtro (RRHH, Dirección Médica...)",
+        "ruta": "ruta UNC de la carpeta. Las barras invertidas van dobles: \\\\",
+        "periodicidad": "diaria | semanal | mensual | anual",
+        "patron": "texto que identifica el archivo del periodo, con tokens",
+        "extension": "xlsx, xls, pdf, docx...",
+        "subcarpeta_por_mes": "true si dentro de 'ruta' hay una carpeta por mes (Mayo, MARZO...)",
+        "dias_laborables": "solo diarias: true para ignorar fines de semana",
+    },
+}
+
 # ======================================================================
 #                               MOTOR
 # ======================================================================
@@ -104,16 +121,100 @@ NOW = datetime.now()
 YEAR = NOW.year
 MONTH = NOW.month
 DAY = NOW.day
+SEMANA_ACTUAL = NOW.isocalendar()[1]
+
+CAMPOS_OBLIGATORIOS = ("id", "nombre", "area", "ruta", "periodicidad", "patron", "extension")
+PERIODICIDADES = ("diaria", "semanal", "mensual", "anual")
 
 
-def resolver(texto: str, year: int, month: int = 1, day: int = 0) -> str:
-    """Sustituye tokens {YYYY}, {MM}, {DD}, {MES_TEXTO} en un string."""
+def dir_base() -> Path:
+    """Carpeta donde vive el .exe (si está compilado) o el .py."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+def dir_salida() -> Path:
+    docs = Path.home() / "Documents"
+    if not docs.exists():
+        docs = Path.home()
+    out = docs / "HUVN-Dashboard"
+    out.mkdir(parents=True, exist_ok=True)
+    return out
+
+
+def cargar_config(log):
+    """Busca config.json: 1º junto al .exe, 2º en Documentos\\HUVN-Dashboard.
+    Si no existe en ninguno, lo crea (junto al .exe si se puede, si no
+    en Documentos) con las tareas por defecto y avisa."""
+    candidatos = [dir_base() / "config.json", dir_salida() / "config.json"]
+    for cfg in candidatos:
+        if cfg.exists():
+            try:
+                data = json.loads(cfg.read_text(encoding="utf-8-sig"))
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"El archivo de configuración tiene un error de sintaxis:\n"
+                    f"  {cfg}\n"
+                    f"  Línea {e.lineno}, columna {e.colno}: {e.msg}\n\n"
+                    f"Revisa comas, comillas y barras dobles (\\\\)."
+                ) from e
+            tareas = data.get("tareas")
+            if not isinstance(tareas, list) or not tareas:
+                raise ValueError(f"El config no contiene ninguna tarea en 'tareas':\n  {cfg}")
+            validar_tareas(tareas, cfg)
+            log(f"Configuración: {cfg}  ({len(tareas)} tareas)\n\n")
+            return tareas
+
+    # No existe: crear uno editable
+    contenido = dict(AYUDA_CONFIG)
+    contenido["tareas"] = TAREAS_DEFECTO
+    texto = json.dumps(contenido, ensure_ascii=False, indent=2)
+    for destino in candidatos:
+        try:
+            destino.write_text(texto, encoding="utf-8")
+            log(f"Se ha creado la configuración inicial en:\n  {destino}\n"
+                f"Edítala con el Bloc de notas para añadir o cambiar tareas.\n\n")
+            return TAREAS_DEFECTO
+        except OSError:
+            continue
+    log("Aviso: no se pudo guardar config.json — se usa la configuración interna.\n\n")
+    return TAREAS_DEFECTO
+
+
+def validar_tareas(tareas, origen):
+    """Valida el config y da errores útiles, no un traceback críptico."""
+    ids = set()
+    for i, t in enumerate(tareas, 1):
+        etiqueta = t.get("nombre") or t.get("id") or f"tarea nº {i}"
+        for campo in CAMPOS_OBLIGATORIOS:
+            if not t.get(campo):
+                raise ValueError(
+                    f"A la tarea '{etiqueta}' le falta el campo obligatorio '{campo}'.\n"
+                    f"Config: {origen}"
+                )
+        if t["periodicidad"] not in PERIODICIDADES:
+            raise ValueError(
+                f"La tarea '{etiqueta}' tiene periodicidad '{t['periodicidad']}'.\n"
+                f"Valores válidos: {', '.join(PERIODICIDADES)}.\nConfig: {origen}"
+            )
+        if t["id"] in ids:
+            raise ValueError(f"Hay dos tareas con el mismo id '{t['id']}'. Config: {origen}")
+        ids.add(t["id"])
+        t.setdefault("subcarpeta_por_mes", False)
+        t.setdefault("dias_laborables", False)
+
+
+def resolver(texto: str, year: int, month: int = 1, day: int = 0, week: int = 0) -> str:
+    """Sustituye tokens {YYYY}, {MM}, {DD}, {WW}, {MES_TEXTO}."""
     t = texto.replace("{YYYY}", str(year))
     t = t.replace("{MM}", f"{month:02d}")
     if 1 <= month <= 12:
         t = t.replace("{MES_TEXTO}", MESES[month - 1])
     if day > 0:
         t = t.replace("{DD}", f"{day:02d}")
+    if week > 0:
+        t = t.replace("{WW}", f"{week:02d}")
     return t
 
 
@@ -128,8 +229,8 @@ def listar_archivos(carpeta: Path, extension: str):
 
 
 def buscar_subcarpeta_mes(base: Path, mes: int):
-    """Busca una subcarpeta cuyo nombre coincida con el mes (insensible
-    a may/min y a variantes como '05-Mayo', 'MAYO', 'mayo')."""
+    """Subcarpeta cuyo nombre coincide con el mes, insensible a
+    mayúsculas y variantes ('05-Mayo', 'MAYO', 'mayo')."""
     if not base.exists():
         return None
     nombre_mes = MESES[mes - 1]
@@ -147,13 +248,17 @@ def buscar_subcarpeta_mes(base: Path, mes: int):
     return None
 
 
-def comprobar_mensual(tarea):
-    resultado = {
+def _base_resultado(tarea, periodicidad):
+    return {
         "id": tarea["id"], "nombre": tarea["nombre"], "area": tarea["area"],
-        "periodicidad": "mensual", "ruta": tarea["ruta"],
+        "periodicidad": periodicidad, "ruta": tarea["ruta"],
         "rutaResuelta": "", "carpetaExiste": False, "error": None,
-        "meses": {},
     }
+
+
+def comprobar_mensual(tarea):
+    resultado = _base_resultado(tarea, "mensual")
+    resultado["meses"] = {}
     ruta = resolver(tarea["ruta"], YEAR, 1)
     resultado["rutaResuelta"] = ruta
     carpeta = Path(ruta)
@@ -182,14 +287,66 @@ def comprobar_mensual(tarea):
     return resultado
 
 
+def comprobar_anual(tarea):
+    """Basta un archivo del año en curso para estar al día."""
+    resultado = _base_resultado(tarea, "anual")
+    ruta = resolver(tarea["ruta"], YEAR, 1)
+    resultado["rutaResuelta"] = ruta
+    carpeta = Path(ruta)
+    if not carpeta.exists():
+        resultado["error"] = "No se localiza la carpeta"
+        resultado["anual"] = {"estado": "sin-carpeta"}
+        return resultado
+    resultado["carpetaExiste"] = True
+    archivos = listar_archivos(carpeta, tarea["extension"])
+    patron = resolver(tarea["patron"], YEAR, MONTH)
+    regex = re.compile(re.escape(patron), re.IGNORECASE)
+    match = next((a for a in archivos if regex.search(a.name)), None)
+    if match:
+        resultado["anual"] = {"estado": "verde", "archivo": match.name, "ruta": str(match)}
+    else:
+        # el año sigue abierto: pendiente pero no atrasado
+        resultado["anual"] = {"estado": "amber"}
+    return resultado
+
+
+def comprobar_semanal(tarea):
+    resultado = _base_resultado(tarea, "semanal")
+    resultado["semanas"] = {}
+    ruta = resolver(tarea["ruta"], YEAR, MONTH)
+    resultado["rutaResuelta"] = ruta
+    carpeta = Path(ruta)
+    if not carpeta.exists():
+        resultado["error"] = "No se localiza la carpeta"
+        return resultado
+    resultado["carpetaExiste"] = True
+    archivos = listar_archivos(carpeta, tarea["extension"])
+
+    total_semanas = date(YEAR, 12, 28).isocalendar()[1]
+    for w in range(1, total_semanas + 1):
+        patron = resolver(tarea["patron"], YEAR, MONTH, week=w)
+        regex = re.compile(re.escape(patron), re.IGNORECASE)
+        match = next((a for a in archivos if regex.search(a.name)), None)
+        lunes = date.fromisocalendar(YEAR, w, 1)
+        domingo = date.fromisocalendar(YEAR, w, 7)
+        rango = f"{lunes.day}/{lunes.month} – {domingo.day}/{domingo.month}"
+        entry = {"rango": rango}
+        if match:
+            entry.update({"estado": "verde", "archivo": match.name, "ruta": str(match)})
+        elif w > SEMANA_ACTUAL:
+            entry["estado"] = "gris"
+        elif w == SEMANA_ACTUAL:
+            entry["estado"] = "amber"
+        else:
+            entry["estado"] = "rojo"
+        resultado["semanas"][str(w)] = entry
+    return resultado
+
+
 def comprobar_diaria(tarea):
-    resultado = {
-        "id": tarea["id"], "nombre": tarea["nombre"], "area": tarea["area"],
-        "periodicidad": "diaria", "ruta": tarea["ruta"],
-        "diasLaborables": tarea["dias_laborables"],
-        "rutaResuelta": "", "carpetaExiste": False, "error": None,
-        "dias": {},
-    }
+    resultado = _base_resultado(tarea, "diaria")
+    resultado["dias"] = {}
+    resultado["diasLaborables"] = tarea["dias_laborables"]
     base = Path(resolver(tarea["ruta"], YEAR, MONTH))
     resultado["rutaResuelta"] = str(base)
     if not base.exists():
@@ -216,7 +373,7 @@ def comprobar_diaria(tarea):
             match = next((a for a in archivos if regex.search(a.name)), None)
             clave = f"{mes}-{d}"
             fecha = date(YEAR, mes, d)
-            fin_semana = fecha.weekday() >= 5  # 5=sábado, 6=domingo
+            fin_semana = fecha.weekday() >= 5
             futuro = (mes > MONTH) or (mes == MONTH and d > DAY)
             entry = {"finSemana": fin_semana, "mes": mes, "dia": d}
             if match:
@@ -233,10 +390,65 @@ def comprobar_diaria(tarea):
     return resultado
 
 
+COMPROBADORES = {
+    "mensual": comprobar_mensual,
+    "diaria": comprobar_diaria,
+    "semanal": comprobar_semanal,
+    "anual": comprobar_anual,
+}
+
+
+def contar_estados(r):
+    """Cuenta verde/amber/rojo de un resultado, ignorando grises."""
+    per = r.get("periodicidad")
+    if per == "diaria":
+        coleccion = r.get("dias", {}).values()
+    elif per == "semanal":
+        coleccion = r.get("semanas", {}).values()
+    elif per == "anual":
+        coleccion = [r.get("anual", {})]
+    else:
+        coleccion = r.get("meses", {}).values()
+    v = a = rj = 0
+    for c in coleccion:
+        e = c.get("estado")
+        if e == "verde":
+            v += 1
+        elif e == "amber":
+            a += 1
+        elif e in ("rojo", "sin-carpeta"):
+            rj += 1
+    return v, a, rj
+
+
+def actualizar_historial(out_dir: Path, verdes: int, ambers: int, rojos: int):
+    """Guarda un punto de historial por día (el último de cada día gana)
+    y devuelve la lista completa para incrustar en el HTML."""
+    hist_path = out_dir / "historial.json"
+    historial = []
+    if hist_path.exists():
+        try:
+            historial = json.loads(hist_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            historial = []
+    hoy = NOW.strftime("%Y-%m-%d")
+    punto = {
+        "fecha": hoy,
+        "verdes": verdes, "ambers": ambers, "rojos": rojos,
+        "total": verdes + ambers + rojos,
+    }
+    historial = [h for h in historial if h.get("fecha") != hoy]
+    historial.append(punto)
+    historial = historial[-90:]  # últimos 90 días
+    try:
+        hist_path.write_text(json.dumps(historial, ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+    return historial
+
+
 def ruta_recurso(nombre: str) -> Path:
-    """Devuelve la ruta a un recurso, sea ejecutando como .py o como .exe
-    empaquetado con PyInstaller (en cuyo caso los recursos viven en
-    sys._MEIPASS)."""
+    """Recurso empaquetado: en .exe vive en sys._MEIPASS."""
     if hasattr(sys, "_MEIPASS"):
         return Path(sys._MEIPASS) / nombre
     return Path(__file__).resolve().parent / nombre
@@ -246,35 +458,29 @@ def ruta_recurso(nombre: str) -> Path:
 #                          GENERAR DASHBOARD
 # ======================================================================
 def generar_dashboard(callback_log):
-    """Hace todo el trabajo: escanea tareas, genera HTML y lo guarda.
-    Devuelve la ruta del HTML generado."""
+    tareas = cargar_config(callback_log)
+
     callback_log("Comprobando tareas...\n")
     datos = []
-    for t in TAREAS:
+    for t in tareas:
         try:
-            if t["periodicidad"] == "mensual":
-                r = comprobar_mensual(t)
-            elif t["periodicidad"] == "diaria":
-                r = comprobar_diaria(t)
-            else:
-                callback_log(f"  - {t['nombre']:<32} (periodicidad no soportada)\n")
-                continue
-
+            comprobador = COMPROBADORES[t["periodicidad"]]
+            r = comprobador(t)
             if r.get("error"):
                 callback_log(f"  - {t['nombre']:<32} [!] {r['error']}\n")
-            elif r["periodicidad"] == "mensual":
-                hechos = sum(1 for v in r["meses"].values() if v.get("estado") == "verde")
-                callback_log(f"  - {t['nombre']:<32} [OK] {hechos} / 12 meses\n")
             else:
-                hechos = sum(1 for v in r["dias"].values() if v.get("estado") == "verde")
-                callback_log(f"  - {t['nombre']:<32} [OK] {hechos} archivos\n")
+                v, a, rj = contar_estados(r)
+                unidad = {"mensual": "meses", "diaria": "archivos",
+                          "semanal": "semanas", "anual": "archivo"}[r["periodicidad"]]
+                callback_log(f"  - {t['nombre']:<32} [OK] {v} {unidad} al día"
+                             + (f", {rj} pendientes" if rj else "") + "\n")
             datos.append(r)
         except Exception as e:
             callback_log(f"  - {t['nombre']:<32} [ERROR] {e}\n")
             datos.append({
                 "id": t["id"], "nombre": t["nombre"], "area": t["area"],
                 "periodicidad": t["periodicidad"], "ruta": t["ruta"],
-                "error": str(e), "meses": {}, "dias": {},
+                "error": str(e),
             })
 
     plantilla_path = ruta_recurso("plantilla.html")
@@ -282,27 +488,26 @@ def generar_dashboard(callback_log):
         raise FileNotFoundError(
             f"No se encuentra plantilla.html (esperado en: {plantilla_path})"
         )
-
     plantilla = plantilla_path.read_text(encoding="utf-8")
-    datos_json = json.dumps(datos, ensure_ascii=False)
-    fecha = NOW.strftime("%d/%m/%Y %H:%M")
-    mes_texto_mayus = MESES[MONTH - 1].upper()
 
+    out_dir = dir_salida()
+    tot_v = tot_a = tot_r = 0
+    for r in datos:
+        v, a, rj = contar_estados(r)
+        tot_v += v; tot_a += a; tot_r += rj
+    historial = actualizar_historial(out_dir, tot_v, tot_a, tot_r)
+
+    fecha = NOW.strftime("%d/%m/%Y %H:%M")
     html = (plantilla
-            .replace("__DATOS_JSON__", datos_json)
+            .replace("__DATOS_JSON__", json.dumps(datos, ensure_ascii=False))
+            .replace("__HISTORIAL_JSON__", json.dumps(historial, ensure_ascii=False))
             .replace("__FECHA_ACTUALIZACION__", fecha)
             .replace("__ANIO__", str(YEAR))
-            .replace("__MES_TEXTO__", mes_texto_mayus)
+            .replace("__MES_TEXTO__", MESES[MONTH - 1].upper())
             .replace("__MES_NUMERO__", str(MONTH))
-            .replace("__DIA__", str(DAY)))
+            .replace("__DIA__", str(DAY))
+            .replace("__SEMANA__", str(SEMANA_ACTUAL)))
 
-    # Guardamos en Documentos del usuario para que cada directivo tenga
-    # su propia copia y no se pisen entre ellos.
-    docs = Path.home() / "Documents"
-    if not docs.exists():
-        docs = Path.home()
-    out_dir = docs / "HUVN-Dashboard"
-    out_dir.mkdir(exist_ok=True)
     out_path = out_dir / "dashboard.html"
     out_path.write_text(html, encoding="utf-8")
 
@@ -311,7 +516,6 @@ def generar_dashboard(callback_log):
 
 
 def abrir_en_navegador(path: Path):
-    """Abre el HTML con la aplicación asociada (navegador por defecto)."""
     try:
         if sys.platform == "win32":
             os.startfile(str(path))  # type: ignore[attr-defined]
@@ -339,105 +543,84 @@ COLOR_CYAN     = "#0c8aaf"
 
 
 class DashboardApp:
-    def __init__(self, root: tk.Tk):
+    def __init__(self, root):
         self.root = root
         self.html_path = None
-        self.error = False
 
         root.title("Dashboard de Tareas · HUVN")
-        root.geometry("620x500")
+        root.geometry("640x520")
         root.configure(bg=COLOR_BG)
         root.minsize(560, 420)
 
-        # Centrar en pantalla
         root.update_idletasks()
-        w = root.winfo_width()
-        h = root.winfo_height()
+        w, h = root.winfo_width(), root.winfo_height()
         x = (root.winfo_screenwidth() // 2) - (w // 2)
         y = (root.winfo_screenheight() // 2) - (h // 2)
         root.geometry(f"+{x}+{y}")
 
         try:
-            # Mejor escalado en pantallas HiDPI Windows
             root.tk.call("tk", "scaling", 1.2)
         except tk.TclError:
             pass
 
-        # --- Cabecera ---
         cabecera = tk.Frame(root, bg=COLOR_PRIMARY, height=64)
         cabecera.pack(fill="x")
         cabecera.pack_propagate(False)
 
-        logo_canvas = tk.Canvas(cabecera, width=44, height=44,
-                                bg=COLOR_PRIMARY, highlightthickness=0)
-        logo_canvas.pack(side="left", padx=(20, 14), pady=10)
-        # Cruz médica blanca
-        logo_canvas.create_rectangle(8, 19, 36, 25, fill="white", outline="")
-        logo_canvas.create_rectangle(19, 8, 25, 36, fill="white", outline="")
+        logo = tk.Canvas(cabecera, width=44, height=44, bg=COLOR_PRIMARY, highlightthickness=0)
+        logo.pack(side="left", padx=(20, 14), pady=10)
+        logo.create_rectangle(8, 19, 36, 25, fill="white", outline="")
+        logo.create_rectangle(19, 8, 25, 36, fill="white", outline="")
 
-        titulo_wrap = tk.Frame(cabecera, bg=COLOR_PRIMARY)
-        titulo_wrap.pack(side="left", anchor="w", pady=12)
-        tk.Label(titulo_wrap, text="Dashboard de Tareas Periódicas",
-                 font=("Segoe UI", 13, "bold"),
-                 bg=COLOR_PRIMARY, fg="white").pack(anchor="w")
-        tk.Label(titulo_wrap, text=f"HUVN · Recursos Humanos · {YEAR}",
-                 font=("Consolas", 9),
-                 bg=COLOR_PRIMARY, fg="#cde8f0").pack(anchor="w")
+        titulo = tk.Frame(cabecera, bg=COLOR_PRIMARY)
+        titulo.pack(side="left", anchor="w", pady=12)
+        tk.Label(titulo, text="Dashboard de Tareas Periódicas",
+                 font=("Segoe UI", 13, "bold"), bg=COLOR_PRIMARY, fg="white").pack(anchor="w")
+        tk.Label(titulo, text=f"HUVN · Recursos Humanos · {YEAR}",
+                 font=("Consolas", 9), bg=COLOR_PRIMARY, fg="#cde8f0").pack(anchor="w")
 
-        # Línea cian de acento debajo de la cabecera
         tk.Frame(root, bg=COLOR_CYAN, height=3).pack(fill="x")
 
-        # --- Cuerpo ---
         cuerpo = tk.Frame(root, bg=COLOR_BG)
         cuerpo.pack(fill="both", expand=True, padx=24, pady=(18, 18))
 
-        self.estado_label = tk.Label(
-            cuerpo, text="Generando dashboard…",
-            font=("Segoe UI", 12, "bold"),
-            bg=COLOR_BG, fg=COLOR_INK, anchor="w",
-        )
+        self.estado_label = tk.Label(cuerpo, text="Generando dashboard…",
+                                     font=("Segoe UI", 12, "bold"),
+                                     bg=COLOR_BG, fg=COLOR_INK, anchor="w")
         self.estado_label.pack(fill="x", pady=(0, 8))
 
         self.sub_label = tk.Label(
             cuerpo, text="Escaneando carpetas de red — esto tardará unos segundos.",
-            font=("Segoe UI", 9), bg=COLOR_BG, fg=COLOR_INK_MUTE, anchor="w",
-        )
+            font=("Segoe UI", 9), bg=COLOR_BG, fg=COLOR_INK_MUTE, anchor="w")
         self.sub_label.pack(fill="x", pady=(0, 12))
 
-        log_frame = tk.Frame(cuerpo, bg=COLOR_LINE, bd=1)
-        log_frame.pack(fill="both", expand=True)
+        marco = tk.Frame(cuerpo, bg=COLOR_LINE, bd=1)
+        marco.pack(fill="both", expand=True)
         self.log = scrolledtext.ScrolledText(
-            log_frame, height=12, font=("Consolas", 9),
+            marco, height=12, font=("Consolas", 9),
             bg=COLOR_BG_CARD, fg=COLOR_INK_SOFT,
-            relief="flat", padx=12, pady=10, wrap="word",
-        )
+            relief="flat", padx=12, pady=10, wrap="word")
         self.log.pack(fill="both", expand=True)
         self.log.configure(state="disabled")
 
-        # --- Botones ---
         botones = tk.Frame(root, bg=COLOR_BG)
         botones.pack(fill="x", padx=24, pady=(0, 18))
 
         self.btn_abrir = tk.Button(
-            botones, text="Abrir dashboard",
-            font=("Segoe UI", 10, "bold"),
+            botones, text="Abrir dashboard", font=("Segoe UI", 10, "bold"),
             bg=COLOR_PRIMARY, fg="white",
             activebackground=COLOR_PRIM_DK, activeforeground="white",
             bd=0, padx=22, pady=10, cursor="hand2",
-            state="disabled", command=self._abrir,
-        )
+            state="disabled", command=self._abrir)
         self.btn_abrir.pack(side="right", padx=(8, 0))
 
         self.btn_cerrar = tk.Button(
-            botones, text="Cerrar",
-            font=("Segoe UI", 10),
+            botones, text="Cerrar", font=("Segoe UI", 10),
             bg=COLOR_BG_CARD, fg=COLOR_INK_SOFT,
             bd=1, padx=18, pady=10, cursor="hand2",
-            state="disabled", command=root.destroy,
-        )
+            state="disabled", command=root.destroy)
         self.btn_cerrar.pack(side="right")
 
-        # Lanzar el trabajo en un hilo aparte para no congelar la UI
         threading.Thread(target=self._trabajar, daemon=True).start()
 
     def _log(self, msg: str):
@@ -451,19 +634,13 @@ class DashboardApp:
         try:
             self.html_path = generar_dashboard(self._log)
             self.estado_label.config(text="Dashboard listo", fg=COLOR_GREEN)
-            self.sub_label.config(
-                text="Se ha guardado en tu carpeta Documentos/HUVN-Dashboard."
-            )
+            self.sub_label.config(text="Guardado en Documentos/HUVN-Dashboard.")
             self.btn_abrir.config(state="normal")
             self.btn_cerrar.config(state="normal")
-            # Abrir solo automáticamente
             self.root.after(400, self._abrir)
         except Exception as e:
-            self.error = True
             self.estado_label.config(text="Se ha producido un error", fg=COLOR_RED)
-            self.sub_label.config(
-                text="Copia el mensaje de abajo y avisa a Recursos Humanos."
-            )
+            self.sub_label.config(text="Copia el mensaje de abajo y avisa a Recursos Humanos.")
             self._log(f"\n[ERROR] {e}\n\n")
             self._log(traceback.format_exc())
             self.btn_cerrar.config(state="normal")
@@ -474,14 +651,15 @@ class DashboardApp:
 
 
 def main_gui():
+    global tk, scrolledtext
+    import tkinter as tk
+    from tkinter import scrolledtext
     root = tk.Tk()
     DashboardApp(root)
     root.mainloop()
 
 
 def main_cli():
-    """Modo línea de comandos (sin GUI). Útil para programar en una
-    tarea programada con --headless."""
     def log(msg):
         sys.stdout.write(msg)
         sys.stdout.flush()
@@ -490,8 +668,9 @@ def main_cli():
     print()
     try:
         path = generar_dashboard(log)
-        print(f"\nAbriendo: {path}")
-        abrir_en_navegador(path)
+        if "--no-abrir" not in sys.argv:
+            print(f"\nAbriendo: {path}")
+            abrir_en_navegador(path)
     except Exception as e:
         print(f"\nERROR: {e}")
         traceback.print_exc()

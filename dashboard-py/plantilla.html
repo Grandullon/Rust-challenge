@@ -560,6 +560,96 @@
   .leyenda-item.rojo .leyenda-cuadro  { background: var(--red-bg); border: 1px solid var(--red); }
   .leyenda-item.gris .leyenda-cuadro  { background: var(--gray-bg); border: 1px solid var(--gray); }
 
+  /* ---------- SEMANALES ---------- */
+  .celda-sem {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+  th.th-sem { padding: 10px 4px !important; font-size: 9px !important; }
+
+  /* ---------- ANUALES ---------- */
+  .anuales-grid {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+  .anual-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+    min-width: 260px;
+  }
+  .anual-estado {
+    width: 16px; height: 16px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .anual-estado.verde { background: var(--green); box-shadow: 0 0 0 4px var(--green-bg); }
+  .anual-estado.amber { background: var(--amber); box-shadow: 0 0 0 4px var(--amber-bg); }
+  .anual-estado.rojo  { background: var(--red);   box-shadow: 0 0 0 4px var(--red-bg); }
+  .anual-chip .nombre { font-weight: 600; cursor: pointer; }
+  .anual-chip .nombre:hover { color: var(--primary); }
+  .anual-chip small {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-top: 2px;
+  }
+  .anual-chip .abrir {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .anual-chip .abrir:hover { text-decoration: underline; }
+
+  /* ---------- TENDENCIA ---------- */
+  .tendencia-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 24px;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .tendencia-titulo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .tendencia-valor {
+    font-family: 'IBM Plex Serif', serif;
+    font-size: 30px;
+    font-weight: 500;
+    color: var(--primary);
+    line-height: 1;
+    margin-top: 6px;
+  }
+  .tendencia-svg { flex: 1; min-width: 220px; height: 56px; }
+  .tendencia-svg polyline { fill: none; stroke: var(--primary); stroke-width: 2; }
+  .tendencia-svg .area { fill: rgba(10,77,140,0.08); stroke: none; }
+  .tendencia-nota {
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
   /* ---------- FOOTER ---------- */
   footer {
     margin-top: 48px;
@@ -604,7 +694,7 @@
   <div class="info-actualizacion">
     <div>
       <strong>Última actualización: __FECHA_ACTUALIZACION__</strong>
-      <small>Para refrescar los datos ejecuta <code>actualizar-dashboard.bat</code></small>
+      <small>Para refrescar los datos vuelve a ejecutar <code>Dashboard-HUVN</code></small>
     </div>
     <div class="badge-actualizar">◇ Datos pre-calculados</div>
   </div>
@@ -637,8 +727,23 @@
     <button class="filtro-chip activo" data-filtro="__todas">Todas</button>
   </div>
 
+  <div class="tendencia-card" id="tendencia-card" style="display:none">
+    <div>
+      <div class="tendencia-titulo">Cumplimiento global</div>
+      <div class="tendencia-valor" id="tendencia-pct">—</div>
+    </div>
+    <svg class="tendencia-svg" id="tendencia-svg" viewBox="0 0 300 56" preserveAspectRatio="none"></svg>
+    <div class="tendencia-nota" id="tendencia-nota"></div>
+  </div>
+
+  <div id="bloque-anuales" style="display:none">
+    <div class="seccion-titulo">Tareas anuales</div>
+    <div class="seccion-sub">Basta un archivo del año en curso</div>
+    <div class="anuales-grid" id="anuales-grid"></div>
+  </div>
+
   <div id="bloque-mensuales" style="display:none">
-    <div class="seccion-titulo">Tareas mensuales y anuales</div>
+    <div class="seccion-titulo">Tareas mensuales</div>
     <div class="seccion-sub">Vista anual ─ __ANIO__</div>
     <div class="matriz-wrap">
       <table class="matriz" id="tabla-matriz">
@@ -650,6 +755,17 @@
             <th>Sep</th><th>Oct</th><th>Nov</th><th>Dic</th>
           </tr>
         </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="bloque-semanales" style="display:none">
+    <div class="seccion-titulo">Tareas semanales</div>
+    <div class="seccion-sub">Semanas ISO ─ __ANIO__ · Semana actual: __SEMANA__</div>
+    <div class="matriz-wrap">
+      <table class="matriz" id="tabla-semanas">
+        <thead><tr id="th-semanas"></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -678,10 +794,11 @@
 <script>
 /* =====================================================
    Dashboard estático - HUVN RRHH
-   Datos generados por actualizar-dashboard.ps1
+   Datos generados por el actualizador (Python/PowerShell)
    ===================================================== */
 
 const DATOS = __DATOS_JSON__;
+const HISTORIAL = __HISTORIAL_JSON__;
 const ANIO = __ANIO__;
 const MES_ACTUAL = __MES_NUMERO__;
 const DIA_ACTUAL = __DIA__;
@@ -741,9 +858,11 @@ function render() {
 
   let total = 0, verdes = 0, ambers = 0, rojos = 0;
   tareas.forEach(t => {
-    const coll = t.periodicidad === 'diaria'
-      ? Object.values(t.dias || {})
-      : Object.values(t.meses || {});
+    let coll;
+    if (t.periodicidad === 'diaria') coll = Object.values(t.dias || {});
+    else if (t.periodicidad === 'semanal') coll = Object.values(t.semanas || {});
+    else if (t.periodicidad === 'anual') coll = t.anual ? [t.anual] : [];
+    else coll = Object.values(t.meses || {});
     coll.forEach(c => {
       if (c.estado === 'gris' || c.estado === 'sin-carpeta') return;
       total++;
@@ -759,7 +878,10 @@ function render() {
   document.getElementById('m-amber').textContent = ambers;
   document.getElementById('m-rojo').textContent = rojos;
 
+  renderTendencia(verdes, ambers, rojos);
+  renderAnuales(tareas);
   renderMatrizMensuales(tareas);
+  renderSemanales(tareas);
   renderDiarias(tareas);
 }
 
@@ -772,7 +894,7 @@ function renderDiagnostico(tarea) {
 }
 
 function renderMatrizMensuales(tareas) {
-  const mensuales = tareas.filter(t => t.periodicidad === 'mensual' || t.periodicidad === 'anual');
+  const mensuales = tareas.filter(t => t.periodicidad === 'mensual');
   const bloque = document.getElementById('bloque-mensuales');
   if (mensuales.length === 0) { bloque.style.display = 'none'; return; }
   bloque.style.display = 'block';
@@ -888,6 +1010,135 @@ function renderDiarias(tareas) {
       cal.appendChild(div);
     }
   });
+}
+
+/* ---------- Tareas anuales ---------- */
+function renderAnuales(tareas) {
+  const anuales = tareas.filter(t => t.periodicidad === 'anual');
+  const bloque = document.getElementById('bloque-anuales');
+  if (anuales.length === 0) { bloque.style.display = 'none'; return; }
+  bloque.style.display = 'block';
+  const grid = document.getElementById('anuales-grid');
+  grid.innerHTML = '';
+  anuales.forEach(tarea => {
+    const a = tarea.anual || { estado: 'gris' };
+    const chip = document.createElement('div');
+    chip.className = 'anual-chip';
+    const estadoCss = a.estado === 'sin-carpeta' ? 'rojo' : a.estado;
+    const detalle = a.estado === 'verde' ? escapar(a.archivo)
+                  : a.estado === 'sin-carpeta' ? 'Carpeta no localizada'
+                  : 'Pendiente este año';
+    chip.innerHTML = `
+      <div class="anual-estado ${estadoCss}"></div>
+      <div>
+        <div class="nombre">${escapar(tarea.nombre)}</div>
+        <small>${escapar(tarea.area)} · ${detalle}</small>
+      </div>
+      ${a.estado === 'verde' && a.ruta ? '<span class="abrir">Abrir →</span>' : ''}
+    `;
+    chip.querySelector('.nombre').onclick = () => abrirCarpeta(tarea.rutaResuelta || tarea.ruta);
+    const abrir = chip.querySelector('.abrir');
+    if (abrir) abrir.onclick = () => abrirArchivo(a.ruta);
+    grid.appendChild(chip);
+  });
+}
+
+/* ---------- Tareas semanales ---------- */
+function renderSemanales(tareas) {
+  const semanales = tareas.filter(t => t.periodicidad === 'semanal');
+  const bloque = document.getElementById('bloque-semanales');
+  if (semanales.length === 0) { bloque.style.display = 'none'; return; }
+  bloque.style.display = 'block';
+
+  const totalSem = Math.max(...semanales.map(t => Object.keys(t.semanas || {}).length), 52);
+  const thRow = document.getElementById('th-semanas');
+  thRow.innerHTML = '<th class="col-tarea-th">Tarea</th>';
+  for (let w = 1; w <= totalSem; w++) {
+    const th = document.createElement('th');
+    th.className = 'th-sem';
+    th.textContent = w;
+    thRow.appendChild(th);
+  }
+
+  const tbody = document.querySelector('#tabla-semanas tbody');
+  tbody.innerHTML = '';
+  semanales.forEach(tarea => {
+    const tr = document.createElement('tr');
+    const tdNombre = document.createElement('td');
+    tdNombre.className = 'col-tarea';
+    tdNombre.innerHTML = `
+      <div class="tarea-nombre" data-id="${escapar(tarea.id)}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        ${escapar(tarea.nombre)}
+      </div>
+      <div class="tarea-meta">${escapar(tarea.area)} · semanal</div>
+      ${renderDiagnostico(tarea)}
+    `;
+    tdNombre.querySelector('.tarea-nombre').onclick = () => abrirCarpeta(tarea.rutaResuelta || tarea.ruta);
+    tr.appendChild(tdNombre);
+
+    for (let w = 1; w <= totalSem; w++) {
+      const td = document.createElement('td');
+      td.style.padding = '6px 3px';
+      const datos = tarea.semanas?.[String(w)] || { estado: 'gris' };
+      const celda = document.createElement('div');
+      celda.className = 'celda celda-sem ' + datos.estado;
+      celda.textContent = datos.estado === 'verde' ? '✓' :
+                          datos.estado === 'amber' ? '·' :
+                          datos.estado === 'rojo' ? '✕' : '';
+      if (datos.estado === 'verde' && datos.ruta) {
+        celda.classList.add('clicable');
+        celda.dataset.tooltip = datos.archivo;
+        celda.onclick = () => abrirArchivo(datos.ruta);
+      } else if (datos.rango) {
+        celda.dataset.tooltip = 'S' + w + ' · ' + datos.rango;
+      }
+      td.appendChild(celda);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Tendencia de cumplimiento ---------- */
+function renderTendencia(verdes, ambers, rojos) {
+  const card = document.getElementById('tendencia-card');
+  const cerrados = verdes + rojos;   // solo periodos ya vencidos
+  const pct = cerrados ? Math.round(verdes / cerrados * 100) : null;
+  document.getElementById('tendencia-pct').textContent = pct === null ? '—' : pct + '%';
+
+  const puntos = (HISTORIAL || []).filter(h => h.total > 0);
+  if (puntos.length < 2) {
+    // sin historial suficiente: mostramos solo el % actual
+    card.style.display = pct === null ? 'none' : 'flex';
+    document.getElementById('tendencia-svg').style.display = 'none';
+    document.getElementById('tendencia-nota').textContent =
+      puntos.length === 1 ? 'La tendencia aparecerá a partir de la 2ª actualización' : '';
+    return;
+  }
+  card.style.display = 'flex';
+  const svg = document.getElementById('tendencia-svg');
+  svg.style.display = 'block';
+
+  const W = 300, H = 56, PAD = 4;
+  const vals = puntos.map(h => {
+    const cerr = h.verdes + h.rojos;
+    return cerr ? h.verdes / cerr * 100 : 0;
+  });
+  const min = Math.max(0, Math.min(...vals) - 5);
+  const max = Math.min(100, Math.max(...vals) + 5);
+  const rango = (max - min) || 1;
+  const coords = vals.map((v, i) => {
+    const x = PAD + i * (W - 2 * PAD) / (vals.length - 1);
+    const y = H - PAD - (v - min) / rango * (H - 2 * PAD);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  });
+  svg.innerHTML =
+    '<polygon class="area" points="' + PAD + ',' + (H - PAD) + ' ' + coords.join(' ') + ' ' + (W - PAD) + ',' + (H - PAD) + '"/>' +
+    '<polyline points="' + coords.join(' ') + '"/>';
+  const primera = puntos[0].fecha, ultima = puntos[puntos.length - 1].fecha;
+  document.getElementById('tendencia-nota').textContent =
+    puntos.length + ' actualizaciones · ' + primera.slice(5) + ' → ' + ultima.slice(5);
 }
 
 renderFiltros();
