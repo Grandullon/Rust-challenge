@@ -1,0 +1,58 @@
+name: Compilar Dashboard-HUVN.exe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/fix-conversation-files-FEkdO]
+    paths:
+      - 'dashboard-py/**'
+      - '.github/workflows/build-exe.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar PyInstaller
+        run: pip install pyinstaller
+
+      - name: Compilar .exe
+        working-directory: dashboard-py
+        run: pyinstaller --onefile --noconsole --add-data "plantilla.html;." --name "Dashboard-HUVN" actualizar_dashboard.py
+
+      - name: Comprobar resultado
+        working-directory: dashboard-py
+        run: |
+          if (!(Test-Path "dist/Dashboard-HUVN.exe")) { exit 1 }
+          Get-Item "dist/Dashboard-HUVN.exe" | Select-Object Name, Length
+
+      - name: Guardar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dashboard-HUVN
+          path: dashboard-py/dist/Dashboard-HUVN.exe
+
+      - name: Publicar en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dashboard-latest
+          name: Dashboard HUVN — última compilación
+          body: |
+            Compilación automática del Dashboard de Tareas Periódicas (HUVN · RRHH).
+
+            **Descarga:** Dashboard-HUVN.exe (más abajo, en Assets).
+
+            Primera ejecución: crea un config.json editable junto al .exe
+            (o en Documentos\HUVN-Dashboard). Edita ese JSON para añadir
+            o cambiar tareas — no hace falta recompilar.
+          files: dashboard-py/dist/Dashboard-HUVN.exe
